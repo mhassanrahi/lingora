@@ -3,3 +3,82 @@
 @import "tailwindcss/utilities.css";
 
 @import "nativewind/theme";
+
+/* ─── Design Tokens ──────────────────────────────────────────── */
+
+@theme {
+  /* Brand Colors */
+  --color-brand-purple: #6C4EF5;
+  --color-brand-deep-purple: #5B3BF6;
+  --color-brand-blue: #4D88FF;
+  --color-brand-green: #21C168;
+
+  /* Semantic Colors */
+  --color-success: #21C168;
+  --color-warning: #FFCB00;
+  --color-streak: #FF8A00;
+  --color-error: #FF4D4F;
+  --color-info: #4D88FF;
+
+  /* Neutrals */
+  --color-ink: #001328;
+  --color-muted: #6B7280;
+  --color-border: #E5E7EB;
+  --color-surface: #F6F7FB;
+
+  /* Font Families */
+  --font-poppins: 'Poppins-Regular';
+  --font-poppins-medium: 'Poppins-Medium';
+  --font-poppins-semibold: 'Poppins-SemiBold';
+  --font-poppins-bold: 'Poppins-Bold';
+}
+
+/* ─── Typography Utilities ───────────────────────────────────── */
+
+@utility typo-h1 {
+  font-family: 'Poppins-Bold';
+  font-size: 32px;
+  line-height: 38px;
+}
+
+@utility typo-h2 {
+  font-family: 'Poppins-SemiBold';
+  font-size: 24px;
+  line-height: 31px;
+}
+
+@utility typo-h3 {
+  font-family: 'Poppins-SemiBold';
+  font-size: 20px;
+  line-height: 26px;
+}
+
+@utility typo-h4 {
+  font-family: 'Poppins-Medium';
+  font-size: 16px;
+  line-height: 22px;
+}
+
+@utility typo-body-lg {
+  font-family: 'Poppins-Regular';
+  font-size: 16px;
+  line-height: 26px;
+}
+
+@utility typo-body-md {
+  font-family: 'Poppins-Regular';
+  font-size: 14px;
+  line-height: 22px;
+}
+
+@utility typo-body-sm {
+  font-family: 'Poppins-Regular';
+  font-size: 13px;
+  line-height: 21px;
+}
+
+@utility typo-caption {
+  font-family: 'Poppins-Regular';
+  font-size: 11px;
+  line-height: 15px;
+}
