@@ -1,4 +1,4 @@
-import type { Unit } from "@/types/learning";
+import type { LanguageCode, Unit } from "@/types/learning";
 
 export const UNITS: Unit[] = [
   // Spanish
@@ -9,7 +9,7 @@ export const UNITS: Unit[] = [
     description: "Learn greetings and simple words.",
     order: 1,
     color: "#58CC02",
-    lessonIds: ["es-u1-l1", "es-u1-l2"],
+    lessonIds: ["es-u1-l1"],
   },
   // French
   {
@@ -43,7 +43,7 @@ export const UNITS: Unit[] = [
   },
 ];
 
-export function getUnitsByLanguage(languageCode: string): Unit[] {
+export function getUnitsByLanguage(languageCode: LanguageCode): Unit[] {
   return UNITS.filter((u) => u.languageCode === languageCode).sort(
     (a, b) => a.order - b.order
   );

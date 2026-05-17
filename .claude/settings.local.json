@@ -5,7 +5,10 @@
       "Bash(node -e \"const p = require\\('./node_modules/@clerk/expo/package.json'\\); console.log\\(p.version\\)\")",
       "Bash(node -e \"const c = require\\('./node_modules/@clerk/expo/dist/index.js'\\); console.log\\(Object.keys\\(c\\).filter\\(k => k.includes\\('Sign'\\) || k.includes\\('Auth'\\)\\)\\)\")",
       "Bash(node -e \"const p = require\\('D:/projects/RN/lingora/node_modules/@clerk/react/package.json'\\); console.log\\(p.version\\)\")",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(Get-ChildItem -Path \"d:\\\\projects\\\\RN\\\\lingora\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(npm run *)"
     ]
   }
 }

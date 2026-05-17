@@ -4,8 +4,9 @@ export interface Language {
   code: LanguageCode;
   name: string;
   nativeName: string;
-  flag: string;
+  flag: number;
   description: string;
+  learnerCount: string;
 }
 
 export type ActivityType = "vocabulary" | "phrase" | "listen" | "speak" | "quiz";

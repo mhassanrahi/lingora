@@ -1,11 +1,11 @@
 import { useAuth, useClerk } from "@clerk/expo";
-import { Redirect } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 
 export default function Index() {
   const { isSignedIn, isLoaded } = useAuth();
 
-  const { signOut } = useClerk()
+  const { signOut } = useClerk();
 
   if (!isLoaded) {
     return (
@@ -20,10 +20,21 @@ export default function Index() {
   }
 
   return (
-    <View className="flex-1 items-center justify-center gap-6">
+    <View className="flex-1 items-center justify-center gap-6 px-6">
       <Text className="typo-h1 color-brand-deep-purple">Welcome to Lingora!</Text>
+
+      <TouchableOpacity
+        className="bg-brand-purple rounded-2xl py-4 px-8 items-center"
+        activeOpacity={0.85}
+        onPress={() => router.push("/language-selection")}
+      >
+        <Text className="font-poppins-semibold text-[16px] color-white">
+          Choose a Language
+        </Text>
+      </TouchableOpacity>
+
       <TouchableOpacity onPress={() => signOut()}>
-        <Text>Sign out</Text>
+        <Text className="typo-body-md color-muted">Sign out</Text>
       </TouchableOpacity>
     </View>
   );

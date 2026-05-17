@@ -1,3 +1,4 @@
+import { images } from "@/constants/images";
 import type { Language } from "@/types/learning";
 
 export const LANGUAGES: Language[] = [
@@ -5,28 +6,32 @@ export const LANGUAGES: Language[] = [
     code: "es",
     name: "Spanish",
     nativeName: "Español",
-    flag: "https://flagcdn.com/w320/es.png",
+    flag: images.flags.es,
     description: "The world's second most spoken native language.",
+    learnerCount: "28.4M",
   },
   {
     code: "fr",
     name: "French",
     nativeName: "Français",
-    flag: "https://flagcdn.com/w320/fr.png",
+    flag: images.flags.fr,
     description: "The language of love, spoken across 5 continents.",
+    learnerCount: "19.4M",
   },
   {
     code: "de",
     name: "German",
     nativeName: "Deutsch",
-    flag: "https://flagcdn.com/w320/de.png",
+    flag: images.flags.de,
     description: "A precise language spoken by over 100 million people.",
+    learnerCount: "8.1M",
   },
   {
     code: "jp",
     name: "Japanese",
     nativeName: "日本語",
-    flag: "https://flagcdn.com/w320/jp.png",
+    flag: images.flags.jp,
     description: "A fascinating language with three writing systems.",
+    learnerCount: "12.7M",
   },
 ];
