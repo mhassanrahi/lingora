@@ -1,8 +1,10 @@
 import { SocialButton } from "@/components/SocialButton";
 import { VerificationModal } from "@/components/VerificationModal";
 import { images } from "@/constants/images";
+import { useSignUp } from "@clerk/expo";
 import { Ionicons } from "@expo/vector-icons";
-import { router, Stack } from "expo-router";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { type Href, router, Stack } from "expo-router";
 import { useState } from "react";
 import {
   Image,
@@ -18,14 +20,39 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SignUpScreen() {
+  const { signUp, errors, fetchStatus } = useSignUp();
+  const { signInWithGoogle } = useGoogleAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
-  const handleSignUp = () => {
-    if (email.trim()) setShowModal(true);
+  const handleSignUp = async () => {
+    const { error } = await signUp.password({ emailAddress: email, password });
+    if (error) return;
+    await signUp.verifications.sendEmailCode();
+    setShowModal(true);
   };
+
+  const handleVerify = async (code: string) => {
+    await signUp.verifications.verifyEmailCode({ code });
+    if (signUp.status === "complete") {
+      setShowModal(false);
+      await signUp.finalize({
+        navigate: ({ session, decorateUrl }) => {
+          if (session?.currentTask) return;
+          const url = decorateUrl("/");
+          router.replace(url.startsWith("http") ? "/" : (url as Href));
+        },
+      });
+    }
+  };
+
+  const handleResend = async () => {
+    await signUp.verifications.sendEmailCode();
+  };
+
+  const isLoading = fetchStatus === "fetching";
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -46,7 +73,7 @@ export default function SignUpScreen() {
 
           {/* Header */}
           <View className="px-6 pt-1">
-            <Text className="typo-h1 color-ink">{"Create your\naccount"}</Text>
+            <Text className="typo-h1 color-ink">{"Create your account"}</Text>
             <Text className="typo-body-md color-muted mt-2">
               Start your language journey today ✨
             </Text>
@@ -79,6 +106,9 @@ export default function SignUpScreen() {
                 autoCorrect={false}
               />
             </View>
+            {errors.fields.emailAddress && (
+              <Text style={styles.errorText}>{errors.fields.emailAddress.message}</Text>
+            )}
 
             {/* Password input */}
             <View className="bg-surface rounded-2xl px-4 pt-3 pb-3 border border-border flex-row items-center">
@@ -103,14 +133,20 @@ export default function SignUpScreen() {
                 />
               </TouchableOpacity>
             </View>
+            {errors.fields.password && (
+              <Text style={styles.errorText}>{errors.fields.password.message}</Text>
+            )}
 
             {/* Sign Up button */}
             <TouchableOpacity
               className="bg-brand-purple rounded-2xl py-[18px] items-center"
               onPress={handleSignUp}
               activeOpacity={0.85}
+              disabled={isLoading || !email.trim() || !password}
             >
-              <Text className="font-poppins-semibold text-[17px] color-white">Sign Up</Text>
+              <Text className="font-poppins-semibold text-[17px] color-white">
+                {isLoading ? "Creating account…" : "Sign Up"}
+              </Text>
             </TouchableOpacity>
 
             {/* Switch to sign in */}
@@ -136,10 +172,11 @@ export default function SignUpScreen() {
 
           {/* Social auth */}
           <View className="px-6 gap-3 pb-6">
-            <SocialButton icon="logo-google" iconColor="#4285F4" label="Continue with Google" />
-            <SocialButton icon="logo-facebook" iconColor="#1877F2" label="Continue with Facebook" />
-            <SocialButton icon="logo-apple" iconColor="#000000" label="Continue with Apple" />
+            <SocialButton icon="logo-google" iconColor="#4285F4" label="Continue with Google" onPress={signInWithGoogle} />
           </View>
+
+          {/* Required for Clerk bot-signup protection */}
+          <View nativeID="clerk-captcha" />
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -147,6 +184,10 @@ export default function SignUpScreen() {
         visible={showModal}
         email={email}
         onClose={() => setShowModal(false)}
+        onVerify={handleVerify}
+        onResend={handleResend}
+        error={errors.fields.code?.message}
+        loading={isLoading}
       />
     </SafeAreaView>
   );
@@ -164,5 +205,11 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: "#001328",
     padding: 0,
+  },
+  errorText: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 13,
+    color: "#FF4D4F",
+    marginTop: -4,
   },
 });

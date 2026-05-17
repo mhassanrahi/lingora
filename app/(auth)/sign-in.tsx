@@ -1,8 +1,10 @@
 import { SocialButton } from "@/components/SocialButton";
 import { VerificationModal } from "@/components/VerificationModal";
 import { images } from "@/constants/images";
+import { useSignIn } from "@clerk/expo";
 import { Ionicons } from "@expo/vector-icons";
-import { router, Stack } from "expo-router";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { type Href, router, Stack } from "expo-router";
 import { useState } from "react";
 import {
   Image,
@@ -18,14 +20,52 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SignInScreen() {
+  const { signIn, errors, fetchStatus } = useSignIn();
+  const { signInWithGoogle } = useGoogleAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
-  const handleSignIn = () => {
-    if (email.trim()) setShowModal(true);
+  const navigate = ({ session, decorateUrl }: { session?: { currentTask?: unknown } | null; decorateUrl: (url: string) => string }) => {
+    if (session?.currentTask) return;
+    const url = decorateUrl("/");
+    router.replace(url.startsWith("http") ? "/" : (url as Href));
   };
+
+  const handleSignIn = async () => {
+    const { error } = await signIn.password({ emailAddress: email, password });
+    if (error) return;
+
+    if (signIn.status === "complete") {
+      await signIn.finalize({ navigate });
+      return;
+    }
+
+    if (signIn.status === "needs_client_trust") {
+      const emailCodeFactor = signIn.supportedSecondFactors?.find(
+        (factor) => factor.strategy === "email_code",
+      );
+      if (emailCodeFactor) {
+        await signIn.mfa.sendEmailCode();
+        setShowModal(true);
+      }
+    }
+  };
+
+  const handleVerify = async (code: string) => {
+    await signIn.mfa.verifyEmailCode({ code });
+    if (signIn.status === "complete") {
+      setShowModal(false);
+      await signIn.finalize({ navigate });
+    }
+  };
+
+  const handleResend = async () => {
+    await signIn.mfa.sendEmailCode();
+  };
+
+  const isLoading = fetchStatus === "fetching";
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -46,7 +86,7 @@ export default function SignInScreen() {
 
           {/* Header */}
           <View className="px-6 pt-1">
-            <Text className="typo-h1 color-ink">{"Welcome\nback"}</Text>
+            <Text className="typo-h1 color-ink">{"Welcome back"}</Text>
             <Text className="typo-body-md color-muted mt-2">
               Continue your language journey ✨
             </Text>
@@ -79,6 +119,9 @@ export default function SignInScreen() {
                 autoCorrect={false}
               />
             </View>
+            {errors.fields.identifier && (
+              <Text style={styles.errorText}>{errors.fields.identifier.message}</Text>
+            )}
 
             {/* Password input */}
             <View className="bg-surface rounded-2xl px-4 pt-3 pb-3 border border-border flex-row items-center">
@@ -103,14 +146,20 @@ export default function SignInScreen() {
                 />
               </TouchableOpacity>
             </View>
+            {errors.fields.password && (
+              <Text style={styles.errorText}>{errors.fields.password.message}</Text>
+            )}
 
             {/* Sign In button */}
             <TouchableOpacity
               className="bg-brand-purple rounded-2xl py-[18px] items-center"
               onPress={handleSignIn}
               activeOpacity={0.85}
+              disabled={isLoading || !email.trim() || !password}
             >
-              <Text className="font-poppins-semibold text-[17px] color-white">Sign In</Text>
+              <Text className="font-poppins-semibold text-[17px] color-white">
+                {isLoading ? "Signing in…" : "Sign In"}
+              </Text>
             </TouchableOpacity>
 
             {/* Switch to sign up */}
@@ -136,17 +185,20 @@ export default function SignInScreen() {
 
           {/* Social auth */}
           <View className="px-6 gap-3 pb-6">
-            <SocialButton icon="logo-google" iconColor="#4285F4" label="Continue with Google" />
-            <SocialButton icon="logo-facebook" iconColor="#1877F2" label="Continue with Facebook" />
-            <SocialButton icon="logo-apple" iconColor="#000000" label="Continue with Apple" />
+            <SocialButton icon="logo-google" iconColor="#4285F4" label="Continue with Google" onPress={signInWithGoogle} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {/* Modal is only shown for MFA (needs_client_trust) */}
       <VerificationModal
         visible={showModal}
         email={email}
         onClose={() => setShowModal(false)}
+        onVerify={handleVerify}
+        onResend={handleResend}
+        error={errors.fields.code?.message}
+        loading={isLoading}
       />
     </SafeAreaView>
   );
@@ -164,5 +216,11 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: "#001328",
     padding: 0,
+  },
+  errorText: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 13,
+    color: "#FF4D4F",
+    marginTop: -4,
   },
 });
