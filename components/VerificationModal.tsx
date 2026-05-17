@@ -1,4 +1,3 @@
-import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -15,11 +14,23 @@ type Props = {
   visible: boolean;
   email: string;
   onClose: () => void;
+  onVerify: (code: string) => void;
+  onResend?: () => void;
+  error?: string | null;
+  loading?: boolean;
 };
 
 const DIGIT_COUNT = 6;
 
-export function VerificationModal({ visible, email, onClose }: Props) {
+export function VerificationModal({
+  visible,
+  email,
+  onClose,
+  onVerify,
+  onResend,
+  error,
+  loading,
+}: Props) {
   const [code, setCode] = useState<string[]>(Array(DIGIT_COUNT).fill(""));
   const inputRefs = useRef<(TextInput | null)[]>(Array(DIGIT_COUNT).fill(null));
 
@@ -33,7 +44,16 @@ export function VerificationModal({ visible, email, onClose }: Props) {
     }
   }, [visible]);
 
+  // Reset code on error so the user can re-enter
+  useEffect(() => {
+    if (error) {
+      setCode(Array(DIGIT_COUNT).fill(""));
+      setTimeout(() => inputRefs.current[0]?.focus(), 100);
+    }
+  }, [error]);
+
   const handleChange = (text: string, index: number) => {
+    if (loading) return;
     const digit = text.replace(/[^0-9]/g, "").slice(-1);
     const next = [...code];
     next[index] = digit;
@@ -44,10 +64,7 @@ export function VerificationModal({ visible, email, onClose }: Props) {
     }
 
     if (next.every(Boolean)) {
-      setTimeout(() => {
-        onClose();
-        router.replace("/");
-      }, 200);
+      onVerify(next.join(""));
     }
   };
 
@@ -94,14 +111,20 @@ export function VerificationModal({ visible, email, onClose }: Props) {
             </Text>
 
             {/* Digit inputs */}
-            <View className="flex-row justify-between mb-7">
+            <View className="flex-row justify-between mb-3">
               {Array(DIGIT_COUNT)
                 .fill(null)
                 .map((_, i) => (
                   <View
                     key={i}
                     className="w-[46px] h-[56px] rounded-[14px] border-[1.5px] items-center justify-center"
-                    style={code[i] ? styles.digitBoxFilled : styles.digitBoxEmpty}
+                    style={
+                      error
+                        ? styles.digitBoxError
+                        : code[i]
+                          ? styles.digitBoxFilled
+                          : styles.digitBoxEmpty
+                    }
                   >
                     <TextInput
                       ref={(el) => {
@@ -116,14 +139,25 @@ export function VerificationModal({ visible, email, onClose }: Props) {
                       textAlign="center"
                       selectionColor="#6C4EF5"
                       caretHidden
+                      editable={!loading}
                     />
                   </View>
                 ))}
             </View>
 
-            <Text className="typo-body-sm color-muted text-center">
+            {/* Error message */}
+            {error ? (
+              <Text style={styles.errorText}>{error}</Text>
+            ) : null}
+
+            <Text className="typo-body-sm color-muted text-center mt-4">
               Didn{"'"}t receive it?{" "}
-              <Text className="font-poppins-semibold color-brand-purple">Resend code</Text>
+              <Text
+                className="font-poppins-semibold color-brand-purple"
+                onPress={onResend}
+              >
+                Resend code
+              </Text>
             </Text>
           </View>
         </KeyboardAvoidingView>
@@ -150,6 +184,10 @@ const styles = StyleSheet.create({
     borderColor: "#6C4EF5",
     backgroundColor: "#F0ECFF",
   },
+  digitBoxError: {
+    borderColor: "#FF4D4F",
+    backgroundColor: "#FFF1F0",
+  },
   // TextInput exception — input-specific props (width/height % not supported by NativeWind)
   digitInput: {
     fontFamily: "Poppins-SemiBold",
@@ -160,5 +198,12 @@ const styles = StyleSheet.create({
     height: "100%",
     textAlign: "center",
     padding: 0,
+  },
+  errorText: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 13,
+    color: "#FF4D4F",
+    textAlign: "center",
+    marginTop: 4,
   },
 });
