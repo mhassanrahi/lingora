@@ -1,9 +1,9 @@
 import { SocialButton } from "@/components/SocialButton";
 import { VerificationModal } from "@/components/VerificationModal";
 import { images } from "@/constants/images";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useSignUp } from "@clerk/expo";
 import { Ionicons } from "@expo/vector-icons";
-import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { type Href, router, Stack } from "expo-router";
 import { useState } from "react";
 import {
@@ -26,30 +26,49 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const handleSignUp = async () => {
-    const { error } = await signUp.password({ emailAddress: email, password });
-    if (error) return;
-    await signUp.verifications.sendEmailCode();
-    setShowModal(true);
+    try {
+      const { error } = await signUp.password({ emailAddress: email, password });
+      if (error) return;
+      const { error: sendError } = await signUp.verifications.sendEmailCode();
+      if (sendError) return;
+      setShowModal(true);
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Sign up failed. Please try again.");
+      console.error("Sign up error:", err);
+    }
   };
 
   const handleVerify = async (code: string) => {
-    await signUp.verifications.verifyEmailCode({ code });
-    if (signUp.status === "complete") {
-      setShowModal(false);
-      await signUp.finalize({
-        navigate: ({ session, decorateUrl }) => {
-          if (session?.currentTask) return;
-          const url = decorateUrl("/");
-          router.replace(url.startsWith("http") ? "/" : (url as Href));
-        },
-      });
+    setLocalError(null);
+    try {
+      const { error } = await signUp.verifications.verifyEmailCode({ code });
+      if (error) return;
+      if (signUp.status === "complete") {
+        setShowModal(false);
+        await signUp.finalize({
+          navigate: ({ session, decorateUrl }) => {
+            if (session?.currentTask) return;
+            const url = decorateUrl("/");
+            router.replace(url.startsWith("http") ? "/" : (url as Href));
+          },
+        });
+      }
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Verification failed. Please try again.");
     }
   };
 
   const handleResend = async () => {
-    await signUp.verifications.sendEmailCode();
+    try {
+      const { error } = await signUp.verifications.sendEmailCode();
+      if (error) return;
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Failed to resend code. Please try again.");
+      console.error("Resend error:", err);
+    }
   };
 
   const isLoading = fetchStatus === "fetching";
@@ -183,10 +202,10 @@ export default function SignUpScreen() {
       <VerificationModal
         visible={showModal}
         email={email}
-        onClose={() => setShowModal(false)}
+        onClose={() => { setShowModal(false); setLocalError(null); }}
         onVerify={handleVerify}
         onResend={handleResend}
-        error={errors.fields.code?.message}
+        error={localError ?? errors.fields.code?.message}
         loading={isLoading}
       />
     </SafeAreaView>

@@ -1,9 +1,9 @@
 import { SocialButton } from "@/components/SocialButton";
 import { VerificationModal } from "@/components/VerificationModal";
 import { images } from "@/constants/images";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useSignIn } from "@clerk/expo";
 import { Ionicons } from "@expo/vector-icons";
-import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { type Href, router, Stack } from "expo-router";
 import { useState } from "react";
 import {
@@ -47,14 +47,16 @@ export default function SignInScreen() {
         (factor) => factor.strategy === "email_code",
       );
       if (emailCodeFactor) {
-        await signIn.mfa.sendEmailCode();
+        const { error: sendError } = await signIn.mfa.sendEmailCode();
+        if (sendError) return;
         setShowModal(true);
       }
     }
   };
 
   const handleVerify = async (code: string) => {
-    await signIn.mfa.verifyEmailCode({ code });
+    const { error } = await signIn.mfa.verifyEmailCode({ code });
+    if (error) return;
     if (signIn.status === "complete") {
       setShowModal(false);
       await signIn.finalize({ navigate });
@@ -62,7 +64,8 @@ export default function SignInScreen() {
   };
 
   const handleResend = async () => {
-    await signIn.mfa.sendEmailCode();
+    const { error } = await signIn.mfa.sendEmailCode();
+    if (error) return;
   };
 
   const isLoading = fetchStatus === "fetching";
