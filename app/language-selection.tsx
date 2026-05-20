@@ -1,5 +1,6 @@
 import { images } from "@/constants/images";
 import { LANGUAGES } from "@/data/languages";
+import { useLanguageStore } from "@/store/languageStore";
 import type { Language } from "@/types/learning";
 import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
@@ -18,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function LanguageSelectionScreen() {
   const [selected, setSelected] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const { setLanguage } = useLanguageStore();
 
   const filtered = LANGUAGES.filter(
     (lang) =>
@@ -116,7 +118,12 @@ export default function LanguageSelectionScreen() {
           <TouchableOpacity
             activeOpacity={selected ? 0.85 : 1}
             disabled={!selected}
-            onPress={() => router.back()}
+            onPress={() => {
+              if (selected) {
+                setLanguage(selected);
+                router.replace("/");
+              }
+            }}
             style={selected ? styles.confirmBtn : styles.confirmBtnDisabled}
             className="rounded-2xl py-5 items-center justify-center"
           >

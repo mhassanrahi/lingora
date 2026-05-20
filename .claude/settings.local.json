@@ -8,7 +8,8 @@
       "Bash(npx tsc *)",
       "Bash(Get-ChildItem -Path \"d:\\\\projects\\\\RN\\\\lingora\" -Recurse -Directory)",
       "Bash(Select-Object -ExpandProperty FullName)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "PowerShell(ls -Path \"d:\\\\projects\\\\RN\\\\lingora\" -Force | Where-Object { $_.PSIsContainer -or $_.Name -eq \"package.json\" -or $_.Name -eq \"global.css\" } | Select-Object Name)"
     ]
   }
 }
