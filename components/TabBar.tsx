@@ -2,12 +2,9 @@ import { colors } from "@/theme/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useEffect, useRef } from "react";
-import { Animated, Dimensions, Text, TouchableOpacity, View } from "react-native";
+import { Animated, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const TAB_COUNT = 5;
-const TAB_WIDTH = SCREEN_WIDTH / TAB_COUNT;
 const CIRCLE_SIZE = 52;
 const TAB_HEIGHT = 62;
 
@@ -26,9 +23,12 @@ const TAB_CONFIG: TabIconConfig[] = [
 ];
 
 const inputRange = TAB_CONFIG.map((_, i) => i);
-const outputRange = TAB_CONFIG.map((_, i) => i * TAB_WIDTH + (TAB_WIDTH - CIRCLE_SIZE) / 2);
 
 export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+  const { width } = useWindowDimensions();
+  const tabWidth = width / TAB_CONFIG.length;
+  const outputRange = TAB_CONFIG.map((_, i) => i * tabWidth + (tabWidth - CIRCLE_SIZE) / 2);
+
   const insets = useSafeAreaInsets();
   const animatedIndex = useRef(new Animated.Value(state.index)).current;
 
@@ -78,6 +78,15 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             className="flex-1 items-center justify-center"
             style={{ height: TAB_HEIGHT }}
             onPress={onPress}
+            onLongPress={() =>
+              navigation.emit({
+                type: "tabLongPress",
+                target: route.key,
+              })
+            }
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isActive }}
+            accessibilityLabel={config.label}
             activeOpacity={0.7}
           >
             <Ionicons
