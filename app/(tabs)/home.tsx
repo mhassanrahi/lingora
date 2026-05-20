@@ -84,7 +84,8 @@ export default function HomeScreen() {
   const currentUnit = units[0];
   const currentLesson = currentUnit ? getLessonsByUnit(currentUnit.id)[0] : null;
 
-  const progressPercent = (DAILY_XP / DAILY_GOAL) * 100;
+  const progressPercent =
+    DAILY_GOAL > 0 ? Math.min(100, Math.max(0, (DAILY_XP / DAILY_GOAL) * 100)) : 0;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -184,9 +185,8 @@ export default function HomeScreen() {
           {TODAY_PLAN.map((item, index) => (
             <View
               key={item.id}
-              className={`flex-row items-center px-4 py-3 ${
-                index < TODAY_PLAN.length - 1 ? "border-b border-border" : ""
-              }`}
+              className={`flex-row items-center px-4 py-3 ${index < TODAY_PLAN.length - 1 ? "border-b border-border" : ""
+                }`}
             >
               <View
                 className="w-11 h-11 rounded-xl items-center justify-center mr-3"
