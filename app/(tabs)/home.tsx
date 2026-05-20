@@ -1,3 +1,4 @@
+import { posthog } from "@/config/posthog";
 import { images } from "@/constants/images";
 import { LANGUAGES } from "@/data/languages";
 import { getLessonsByUnit } from "@/data/lessons";
@@ -87,6 +88,14 @@ export default function HomeScreen() {
   const progressPercent =
     DAILY_GOAL > 0 ? Math.min(100, Math.max(0, (DAILY_XP / DAILY_GOAL) * 100)) : 0;
 
+  const handleContinueLearning = () => {
+    posthog.capture("lesson_continue_tapped", {
+      language_code: langCode,
+      unit_order: currentUnit?.order ?? 1,
+      lesson_title: currentLesson?.title ?? null,
+    });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -161,6 +170,8 @@ export default function HomeScreen() {
               <TouchableOpacity
                 className="bg-white rounded-full px-[22px] py-2 self-start mt-[18px]"
                 activeOpacity={0.85}
+                onPress={handleContinueLearning}
+                testID="continue-learning-button"
               >
                 <Text className="typo-h4 color-brand-purple">Continue</Text>
               </TouchableOpacity>

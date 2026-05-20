@@ -1,3 +1,4 @@
+import { posthog } from "@/config/posthog";
 import { useSSO } from "@clerk/expo";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
@@ -17,6 +18,7 @@ export function useGoogleAuth() {
 
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
+        posthog.capture("user_signed_in_with_google", { method: "google" });
         router.replace("/");
       }
     } catch (err) {

@@ -1,3 +1,4 @@
+import { posthog } from "@/config/posthog";
 import { images } from "@/constants/images";
 import { LANGUAGES } from "@/data/languages";
 import { useLanguageStore } from "@/store/languageStore";
@@ -120,6 +121,11 @@ export default function LanguageSelectionScreen() {
             disabled={!selected}
             onPress={() => {
               if (selected) {
+                const lang = LANGUAGES.find((l) => l.code === selected);
+                posthog.capture("language_selected", {
+                  language_code: selected,
+                  language_name: lang?.name ?? null,
+                });
                 setLanguage(selected);
                 router.replace("/");
               }

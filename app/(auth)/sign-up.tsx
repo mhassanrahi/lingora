@@ -1,5 +1,6 @@
 import { SocialButton } from "@/components/SocialButton";
 import { VerificationModal } from "@/components/VerificationModal";
+import { posthog } from "@/config/posthog";
 import { images } from "@/constants/images";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useSignUp } from "@clerk/expo";
@@ -47,6 +48,7 @@ export default function SignUpScreen() {
       const { error } = await signUp.verifications.verifyEmailCode({ code });
       if (error) return;
       if (signUp.status === "complete") {
+        posthog.capture("user_signed_up", { method: "password" });
         setShowModal(false);
         await signUp.finalize({
           navigate: ({ session, decorateUrl }) => {
