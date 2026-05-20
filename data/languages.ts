@@ -1,5 +1,5 @@
 import { images } from "@/constants/images";
-import type { Language } from "@/types/learning";
+import type { Language, LanguageCode } from "@/types/learning";
 
 export const LANGUAGES: Language[] = [
   {
@@ -35,3 +35,11 @@ export const LANGUAGES: Language[] = [
     learnerCount: "12.7M",
   },
 ];
+
+
+export const GREETINGS: Record<LanguageCode, string> = {
+  es: "Hola",
+  fr: "Bonjour",
+  de: "Hallo",
+  jp: "こんにちは",
+};
