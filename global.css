@@ -82,3 +82,9 @@
   font-size: 11px;
   line-height: 15px;
 }
+
+@utility typo-xp {
+  font-family: 'Poppins-Bold';
+  font-size: 30px;
+  line-height: 34px;
+}
