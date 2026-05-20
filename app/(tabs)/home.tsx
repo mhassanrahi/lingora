@@ -147,7 +147,7 @@ export default function HomeScreen() {
           style={styles.continueCardShadow}
         >
           <View className="p-5 min-h-[170px]">
-            <View className="pr-[120px]">
+            <View className="pr-[145px]">
               <Text className="font-poppins text-[12px] leading-[18px] text-white/75">
                 Continue learning
               </Text>
@@ -168,8 +168,8 @@ export default function HomeScreen() {
           </View>
           <Image
             source={images.palace}
-            className="absolute right-0 bottom-0 w-[130px] h-[170px]"
-            resizeMode="contain"
+            className="absolute right-0 bottom-[-30px] w-[165px] h-[185px]"
+            resizeMode="cover"
           />
         </View>
 
