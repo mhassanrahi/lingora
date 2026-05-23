@@ -1,40 +1,451 @@
+import { images } from "@/constants/images";
 import { getLessonById } from "@/data/lessons";
+import type { PhraseItem } from "@/types/learning";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function LessonDetailScreen() {
+type SessionPhase = "intro" | "teaching" | "feedback";
+
+const { width: SCREEN_W } = Dimensions.get("window");
+
+const FEEDBACK = [
+  { label: "Speaking", value: "Excellent", color: "#21C168" },
+  { label: "Pronunciation", value: "Great", color: "#00BFA5" },
+  { label: "Grammar", value: "Good", color: "#6C4EF5" },
+];
+
+export default function LessonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const lesson = getLessonById(id ?? "");
 
+  const [phase, setPhase] = useState<SessionPhase>("intro");
+  const [isMuted, setIsMuted] = useState(false);
+  const [showSubtitles, setShowSubtitles] = useState(true);
+  const [phraseIdx, setPhraseIdx] = useState(0);
+
+  const phrases: PhraseItem[] =
+    lesson?.activities.find((a) => a.type === "phrase")?.phrases ?? [];
+
+  const bubbleText =
+    phase === "intro"
+      ? (lesson?.aiTeacherPrompt.intro ?? "")
+      : phase === "feedback"
+        ? (lesson?.aiTeacherPrompt.encouragement ?? "")
+        : (phrases[phraseIdx]?.phrase ?? "");
+
+  const bubbleTranslation =
+    phase === "teaching" && showSubtitles
+      ? (phrases[phraseIdx]?.translation ?? "")
+      : "";
+
+  useEffect(() => {
+    if (!lesson) return;
+    if (phase === "intro") {
+      const t = setTimeout(() => setPhase("teaching"), 3200);
+      return () => clearTimeout(t);
+    }
+    if (phase === "teaching" && phrases.length > 0) {
+      const t = setTimeout(() => {
+        if (phraseIdx < phrases.length - 1) {
+          setPhraseIdx((i) => i + 1);
+        } else {
+          setPhase("feedback");
+        }
+      }, 4000);
+      return () => clearTimeout(t);
+    }
+  }, [phase, phraseIdx, lesson, phrases.length]);
+
+  if (!lesson) return null;
+
+  const sessionLabel =
+    phase === "intro"
+      ? "Starting session..."
+      : phase === "teaching"
+        ? `Phrase ${phraseIdx + 1} of ${phrases.length}`
+        : "Great session!";
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#F6F7FB" }}>
-      <View className="flex-row items-center px-5 py-3 border-b border-border bg-white">
+    <SafeAreaView style={styles.safeArea}>
+      {/* ── Header ───────────────────────────────────────────────── */}
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color="#001328" />
+          <Ionicons name="chevron-back" size={26} color="white" />
         </TouchableOpacity>
-        <Text className="typo-h4 color-ink ml-4 flex-1" numberOfLines={1}>
-          {lesson?.title ?? "Lesson"}
-        </Text>
+
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>AI Teacher</Text>
+          <View style={styles.onlineRow}>
+            <View style={styles.onlineDot} />
+            <Text style={styles.onlineLabel}>Online</Text>
+          </View>
+        </View>
+
+        <View style={styles.headerRight}>
+          <View style={styles.cameraWrap}>
+            <Ionicons name="videocam-outline" size={20} color="white" />
+            <View style={styles.cameraBadge}>
+              <Text style={styles.cameraBadgeText}>{lesson.xpReward}</Text>
+            </View>
+          </View>
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={16} color="#6C4EF5" />
+          </View>
+        </View>
       </View>
 
-      <View className="flex-1 items-center justify-center gap-4 px-6">
-        <View className="w-20 h-20 rounded-2xl bg-brand-purple/10 items-center justify-center">
-          <Ionicons name="book-outline" size={40} color="#6C4EF5" />
+      {/* ── Body ─────────────────────────────────────────────────── */}
+      <View style={styles.body}>
+        {/* Teacher area */}
+        <View style={styles.teacherArea}>
+          {/* Mascot */}
+          <Image
+            source={images.mascotWelcome}
+            style={styles.mascot}
+            resizeMode="contain"
+          />
+
+          {/* Student thumbnail */}
+          <View style={styles.studentThumb}>
+            <Ionicons name="person" size={28} color="rgba(255,255,255,0.7)" />
+          </View>
+
+          {/* Session status pill */}
+          <View style={styles.statusPill}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>{sessionLabel}</Text>
+          </View>
+
+          {/* Teacher speech bubble */}
+          <View style={styles.bubble}>
+            <View style={styles.bubbleInner}>
+              <View style={styles.bubbleTexts}>
+                <Text style={styles.bubbleMain} numberOfLines={2}>
+                  {bubbleText}
+                </Text>
+                {bubbleTranslation ? (
+                  <Text style={styles.bubbleSub}>{bubbleTranslation}</Text>
+                ) : null}
+              </View>
+              <TouchableOpacity hitSlop={8}>
+                <Ionicons name="volume-medium" size={22} color="#6C4EF5" />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-        <Text className="typo-h3 color-ink text-center">{lesson?.title}</Text>
-        <Text className="typo-body-md color-muted text-center">{lesson?.description}</Text>
-        <View className="bg-white rounded-2xl px-5 py-3 mt-2" style={{ alignSelf: "stretch" }}>
-          <Text className="typo-caption color-muted text-center">
-            {lesson?.xpReward} XP · {lesson?.activities.length} activities
-          </Text>
+
+        {/* ── Controls ─────────────────────────────────────────── */}
+        <View style={styles.controls}>
+          {/* Camera — disabled (audio-only) */}
+          <TouchableOpacity style={styles.ctrlBtn} activeOpacity={0.8}>
+            <Ionicons name="videocam-off-outline" size={22} color="white" />
+          </TouchableOpacity>
+
+          {/* Mic */}
+          <TouchableOpacity
+            style={[styles.ctrlBtn, isMuted && styles.ctrlBtnActive]}
+            onPress={() => setIsMuted((v) => !v)}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={isMuted ? "mic-off" : "mic-outline"}
+              size={22}
+              color="white"
+            />
+          </TouchableOpacity>
+
+          {/* Subtitles */}
+          <TouchableOpacity
+            style={[styles.ctrlBtn, showSubtitles && styles.ctrlBtnActive]}
+            onPress={() => setShowSubtitles((v) => !v)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="text-outline" size={22} color="white" />
+          </TouchableOpacity>
+
+          {/* End Call */}
+          <TouchableOpacity
+            style={styles.endCallBtn}
+            onPress={() => router.back()}
+            activeOpacity={0.8}
+          >
+            <View style={styles.endCallIcon}>
+              <Ionicons name="call" size={22} color="white" />
+            </View>
+          </TouchableOpacity>
         </View>
-        <Text className="typo-body-sm color-muted text-center mt-2">
-          Full lesson experience coming soon
-        </Text>
+
+        {/* ── Feedback ─────────────────────────────────────────── */}
+        <View style={styles.feedbackRow}>
+          {FEEDBACK.map((item, idx) => (
+            <View
+              key={item.label}
+              style={[
+                styles.feedbackItem,
+                idx < FEEDBACK.length - 1 && styles.feedbackDivider,
+              ]}
+            >
+              <Text style={styles.feedbackLabel}>{item.label}</Text>
+              <Text style={[styles.feedbackValue, { color: item.color }]}>
+                {item.value}
+              </Text>
+            </View>
+          ))}
+        </View>
       </View>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#0D0B1E",
+  },
+
+  // ── Header
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: "#0D0B1E",
+  },
+  headerCenter: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  headerTitle: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 16,
+    lineHeight: 22,
+    color: "white",
+  },
+  onlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 1,
+  },
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#21C168",
+  },
+  onlineLabel: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#21C168",
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  cameraWrap: {
+    position: "relative",
+  },
+  cameraBadge: {
+    position: "absolute",
+    top: -6,
+    right: -9,
+    backgroundColor: "#6C4EF5",
+    borderRadius: 8,
+    minWidth: 18,
+    height: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  cameraBadgeText: {
+    fontFamily: "Poppins-Bold",
+    fontSize: 9,
+    lineHeight: 13,
+    color: "white",
+  },
+  avatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#EEF0FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // ── Body
+  body: {
+    flex: 1,
+    backgroundColor: "white",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
+  },
+
+  // ── Teacher area
+  teacherArea: {
+    flex: 1,
+    backgroundColor: "#EEF0FF",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    overflow: "hidden",
+  },
+  mascot: {
+    width: SCREEN_W * 0.72,
+    height: SCREEN_W * 0.72,
+    marginBottom: 90,
+  },
+  studentThumb: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    width: 80,
+    height: 100,
+    borderRadius: 14,
+    backgroundColor: "#1E1A30",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.12)",
+    overflow: "hidden",
+  },
+  statusPill: {
+    position: "absolute",
+    top: 14,
+    left: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(13,11,30,0.55)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#21C168",
+  },
+  statusText: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 11,
+    lineHeight: 15,
+    color: "white",
+  },
+
+  // ── Bubble
+  bubble: {
+    position: "absolute",
+    bottom: 14,
+    left: 14,
+    right: 14,
+    backgroundColor: "white",
+    borderRadius: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  bubbleInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    gap: 10,
+  },
+  bubbleTexts: {
+    flex: 1,
+  },
+  bubbleMain: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#001328",
+  },
+  bubbleSub: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+
+  // ── Controls
+  controls: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    backgroundColor: "white",
+  },
+  ctrlBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "#2A2040",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ctrlBtnActive: {
+    backgroundColor: "#6C4EF5",
+  },
+  endCallBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#FF4D4F",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  endCallIcon: {
+    transform: [{ rotate: "135deg" }],
+  },
+
+  // ── Feedback
+  feedbackRow: {
+    flexDirection: "row",
+    backgroundColor: "white",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+  },
+  feedbackItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  feedbackDivider: {
+    borderRightWidth: 1,
+    borderRightColor: "#F3F4F6",
+  },
+  feedbackLabel: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#6B7280",
+  },
+  feedbackValue: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 1,
+  },
+});
