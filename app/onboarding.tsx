@@ -1,3 +1,4 @@
+import { posthog } from "@/config/posthog";
 import { images } from "@/constants/images";
 import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
@@ -5,6 +6,11 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function OnboardingScreen() {
+  const handleGetStarted = () => {
+    posthog.capture("onboarding_get_started");
+    router.push("/(auth)/sign-up");
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -58,7 +64,12 @@ export default function OnboardingScreen() {
 
       {/* Get Started Button */}
       <View className="px-6 pb-8">
-        <TouchableOpacity className="bg-brand-purple rounded-2xl py-5 flex-row items-center justify-center gap-2" activeOpacity={0.85} onPress={() => router.push("/(auth)/sign-up")}>
+        <TouchableOpacity
+          className="bg-brand-purple rounded-2xl py-5 flex-row items-center justify-center gap-2"
+          activeOpacity={0.85}
+          onPress={handleGetStarted}
+          testID="get-started-button"
+        >
           <Text className="font-poppins-semibold text-[17px] color-white">Get Started</Text>
           <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
         </TouchableOpacity>

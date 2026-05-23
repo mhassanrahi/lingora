@@ -1,5 +1,6 @@
 import { SocialButton } from "@/components/SocialButton";
 import { VerificationModal } from "@/components/VerificationModal";
+import { posthog } from "@/config/posthog";
 import { images } from "@/constants/images";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useSignIn } from "@clerk/expo";
@@ -34,23 +35,43 @@ export default function SignInScreen() {
   };
 
   const handleSignIn = async () => {
-    const { error } = await signIn.password({ emailAddress: email, password });
-    if (error) return;
-
-    if (signIn.status === "complete") {
-      await signIn.finalize({ navigate });
-      return;
-    }
-
-    if (signIn.status === "needs_client_trust") {
-      const emailCodeFactor = signIn.supportedSecondFactors?.find(
-        (factor) => factor.strategy === "email_code",
-      );
-      if (emailCodeFactor) {
-        const { error: sendError } = await signIn.mfa.sendEmailCode();
-        if (sendError) return;
-        setShowModal(true);
+    posthog.capture("sign_in_attempted", { method: "password" });
+    try {
+      const { error } = await signIn.password({ emailAddress: email, password });
+      if (error) {
+        posthog.capture("sign_in_failed", { method: "password", error_message: error.message });
+        return;
       }
+
+      if (signIn.status === "complete") {
+        posthog.identify(email, { $set: { email } });
+        await signIn.finalize({ navigate });
+        posthog.capture("user_signed_in", { method: "password" });
+        return;
+      }
+
+      if (signIn.status === "needs_client_trust") {
+        const emailCodeFactor = signIn.supportedSecondFactors?.find(
+          (factor) => factor.strategy === "email_code",
+        );
+        if (emailCodeFactor) {
+          const { error: sendError } = await signIn.mfa.sendEmailCode();
+          if (sendError) return;
+          setShowModal(true);
+        }
+      }
+    } catch (err) {
+      const error = err as Error;
+      posthog.capture("$exception", {
+        $exception_list: [
+          {
+            type: error.name,
+            value: error.message,
+            stacktrace: { type: "raw", frames: error.stack ?? "" },
+          },
+        ],
+        $exception_source: "sign_in",
+      });
     }
   };
 
@@ -60,6 +81,7 @@ export default function SignInScreen() {
     if (signIn.status === "complete") {
       setShowModal(false);
       await signIn.finalize({ navigate });
+      posthog.capture("user_signed_in", { method: "password_mfa" });
     }
   };
 

@@ -1,10 +1,11 @@
+import { posthog } from "@/config/posthog";
 import { images } from "@/constants/images";
 import { LANGUAGES } from "@/data/languages";
 import { useLanguageStore } from "@/store/languageStore";
 import type { Language } from "@/types/learning";
 import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Image,
   ScrollView,
@@ -20,12 +21,25 @@ export default function LanguageSelectionScreen() {
   const [selected, setSelected] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const { setLanguage } = useLanguageStore();
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const filtered = LANGUAGES.filter(
     (lang) =>
       lang.name.toLowerCase().includes(query.toLowerCase()) ||
       lang.nativeName.toLowerCase().includes(query.toLowerCase())
   );
+
+  useEffect(() => {
+    if (!query.trim()) return;
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      posthog.capture("language_searched", { query: query.trim(), results_count: filtered.length });
+    }, 600);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -120,6 +134,11 @@ export default function LanguageSelectionScreen() {
             disabled={!selected}
             onPress={() => {
               if (selected) {
+                const lang = LANGUAGES.find((l) => l.code === selected);
+                posthog.capture("language_selected", {
+                  language_code: selected,
+                  language_name: lang?.name ?? null,
+                });
                 setLanguage(selected);
                 router.replace("/");
               }

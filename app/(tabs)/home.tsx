@@ -1,3 +1,4 @@
+import { posthog } from "@/config/posthog";
 import { images } from "@/constants/images";
 import { LANGUAGES } from "@/data/languages";
 import { getLessonsByUnit } from "@/data/lessons";
@@ -87,6 +88,14 @@ export default function HomeScreen() {
   const progressPercent =
     DAILY_GOAL > 0 ? Math.min(100, Math.max(0, (DAILY_XP / DAILY_GOAL) * 100)) : 0;
 
+  const handleContinueLearning = () => {
+    posthog.capture("lesson_continue_tapped", {
+      language_code: langCode,
+      unit_order: currentUnit?.order ?? 1,
+      lesson_title: currentLesson?.title ?? null,
+    });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -161,6 +170,8 @@ export default function HomeScreen() {
               <TouchableOpacity
                 className="bg-white rounded-full px-[22px] py-2 self-start mt-[18px]"
                 activeOpacity={0.85}
+                onPress={handleContinueLearning}
+                testID="continue-learning-button"
               >
                 <Text className="typo-h4 color-brand-purple">Continue</Text>
               </TouchableOpacity>
@@ -183,8 +194,15 @@ export default function HomeScreen() {
 
         <View className="mx-4 mb-5 rounded-2xl bg-white" style={styles.cardShadowSm}>
           {TODAY_PLAN.map((item, index) => (
-            <View
+            <TouchableOpacity
               key={item.id}
+              activeOpacity={0.7}
+              onPress={() => posthog.capture("today_plan_item_tapped", {
+                item_id: item.id,
+                item_title: item.title,
+                completed: item.completed,
+                language_code: langCode,
+              })}
               className={`flex-row items-center px-4 py-3 ${index < TODAY_PLAN.length - 1 ? "border-b border-border" : ""
                 }`}
             >
@@ -205,7 +223,7 @@ export default function HomeScreen() {
               ) : (
                 <View className="w-7 h-7 rounded-full border-2 border-border" />
               )}
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 

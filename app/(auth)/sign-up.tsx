@@ -1,5 +1,6 @@
 import { SocialButton } from "@/components/SocialButton";
 import { VerificationModal } from "@/components/VerificationModal";
+import { posthog } from "@/config/posthog";
 import { images } from "@/constants/images";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useSignUp } from "@clerk/expo";
@@ -29,24 +30,43 @@ export default function SignUpScreen() {
   const [localError, setLocalError] = useState<string | null>(null);
 
   const handleSignUp = async () => {
+    posthog.capture("sign_up_attempted", { method: "password" });
     try {
       const { error } = await signUp.password({ emailAddress: email, password });
-      if (error) return;
+      if (error) {
+        posthog.capture("sign_up_failed", { method: "password", error_message: error.message });
+        return;
+      }
       const { error: sendError } = await signUp.verifications.sendEmailCode();
       if (sendError) return;
       setShowModal(true);
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : "Sign up failed. Please try again.");
+      const error = err as Error;
+      posthog.capture("sign_up_failed", { method: "password", error_message: error.message });
+      posthog.capture("$exception", {
+        $exception_list: [
+          {
+            type: error.name,
+            value: error.message,
+            stacktrace: { type: "raw", frames: error.stack ?? "" },
+          },
+        ],
+        $exception_source: "sign_up",
+      });
+      setLocalError(error.message || "Sign up failed. Please try again.");
       console.error("Sign up error:", err);
     }
   };
 
   const handleVerify = async (code: string) => {
     setLocalError(null);
+    posthog.capture("email_verification_submitted", { context: "sign_up" });
     try {
       const { error } = await signUp.verifications.verifyEmailCode({ code });
       if (error) return;
       if (signUp.status === "complete") {
+        posthog.identify(email, { $set: { email }, $set_once: { first_seen: new Date().toISOString() } });
+
         setShowModal(false);
         await signUp.finalize({
           navigate: ({ session, decorateUrl }) => {
@@ -55,6 +75,7 @@ export default function SignUpScreen() {
             router.replace(url.startsWith("http") ? "/" : (url as Href));
           },
         });
+        posthog.capture("user_signed_up", { method: "password" });
       }
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Verification failed. Please try again.");
