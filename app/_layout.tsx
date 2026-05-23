@@ -1,13 +1,13 @@
 import "../global.css";
 
+import { posthog } from "@/config/posthog";
 import { ClerkProvider, useUser } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { useFonts } from "expo-font";
 import { Stack, useGlobalSearchParams, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useRef } from "react";
 import { PostHogProvider } from "posthog-react-native";
-import { posthog } from "@/config/posthog";
+import { useEffect, useRef } from "react";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -16,6 +16,22 @@ if (!publishableKey) {
 }
 
 SplashScreen.preventAutoHideAsync();
+
+const SENSITIVE_PARAM_KEYS = new Set([
+  "code",
+  "token",
+  "access_token",
+  "email",
+  "password",
+]);
+
+function sanitizeAnalyticsParams(
+  params: Record<string, string | string[]>
+): Record<string, string | string[]> {
+  return Object.fromEntries(
+    Object.entries(params).filter(([key]) => !SENSITIVE_PARAM_KEYS.has(key))
+  );
+}
 
 // Inner component — must be a child of ClerkProvider to call useUser()
 function AppNavigation() {
@@ -26,6 +42,8 @@ function AppNavigation() {
       posthog.identify(user.id, {
         $set_once: { first_seen: new Date().toISOString() },
       });
+    } else {
+      posthog.reset();
     }
   }, [user?.id]);
 
@@ -55,7 +73,7 @@ export default function RootLayout() {
     if (previousPathname.current !== pathname) {
       posthog.screen(pathname, {
         previous_screen: previousPathname.current ?? null,
-        ...params,
+        ...sanitizeAnalyticsParams(params),
       });
       previousPathname.current = pathname;
     }

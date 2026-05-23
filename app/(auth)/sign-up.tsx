@@ -66,7 +66,7 @@ export default function SignUpScreen() {
       if (error) return;
       if (signUp.status === "complete") {
         posthog.identify(email, { $set: { email }, $set_once: { first_seen: new Date().toISOString() } });
-        posthog.capture("user_signed_up", { method: "password" });
+
         setShowModal(false);
         await signUp.finalize({
           navigate: ({ session, decorateUrl }) => {
@@ -75,6 +75,7 @@ export default function SignUpScreen() {
             router.replace(url.startsWith("http") ? "/" : (url as Href));
           },
         });
+        posthog.capture("user_signed_up", { method: "password" });
       }
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Verification failed. Please try again.");

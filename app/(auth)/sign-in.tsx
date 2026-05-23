@@ -45,8 +45,8 @@ export default function SignInScreen() {
 
       if (signIn.status === "complete") {
         posthog.identify(email, { $set: { email } });
-        posthog.capture("user_signed_in", { method: "password" });
         await signIn.finalize({ navigate });
+        posthog.capture("user_signed_in", { method: "password" });
         return;
       }
 
@@ -79,9 +79,9 @@ export default function SignInScreen() {
     const { error } = await signIn.mfa.verifyEmailCode({ code });
     if (error) return;
     if (signIn.status === "complete") {
-      posthog.capture("user_signed_in", { method: "password_mfa" });
       setShowModal(false);
       await signIn.finalize({ navigate });
+      posthog.capture("user_signed_in", { method: "password_mfa" });
     }
   };
 
