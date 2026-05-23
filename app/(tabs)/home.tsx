@@ -194,8 +194,15 @@ export default function HomeScreen() {
 
         <View className="mx-4 mb-5 rounded-2xl bg-white" style={styles.cardShadowSm}>
           {TODAY_PLAN.map((item, index) => (
-            <View
+            <TouchableOpacity
               key={item.id}
+              activeOpacity={0.7}
+              onPress={() => posthog.capture("today_plan_item_tapped", {
+                item_id: item.id,
+                item_title: item.title,
+                completed: item.completed,
+                language_code: langCode,
+              })}
               className={`flex-row items-center px-4 py-3 ${index < TODAY_PLAN.length - 1 ? "border-b border-border" : ""
                 }`}
             >
@@ -216,7 +223,7 @@ export default function HomeScreen() {
               ) : (
                 <View className="w-7 h-7 rounded-full border-2 border-border" />
               )}
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 

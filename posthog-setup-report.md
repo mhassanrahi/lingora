@@ -1,42 +1,37 @@
 <wizard-report>
 # PostHog post-wizard report
 
-The wizard has completed a deep integration of PostHog analytics into Lingora — a Duolingo-inspired AI language learning app built with Expo, Expo Router, Clerk authentication, and NativeWind.
-
-## Summary of changes
-
-- **`app.config.js`** (new) — Migrated from `app.json` to `app.config.js` to expose `POSTHOG_PROJECT_TOKEN` and `POSTHOG_HOST` via `expo-constants` extras.
-- **`.env`** — Added `POSTHOG_PROJECT_TOKEN` and `POSTHOG_HOST` environment variables.
-- **`config/posthog.ts`** (new) — PostHog client singleton configured via `Constants.expoConfig.extra`, with lifecycle event capture, batching, and feature flag preloading.
-- **`app/_layout.tsx`** — Added `PostHogProvider` wrapping the entire app, manual screen tracking using `usePathname`/`useGlobalSearchParams`, and user identification via Clerk's `user.id` (non-PII opaque ID) in an inner `AppNavigation` component.
-- **`app/(auth)/sign-in.tsx`** — Captures `user_signed_in` with `{ method: "password" | "password_mfa" }` on successful sign-in.
-- **`app/(auth)/sign-up.tsx`** — Captures `user_signed_up` with `{ method: "password" }` after email verification completes.
-- **`app/onboarding.tsx`** — Captures `onboarding_get_started` when the Get Started button is tapped.
-- **`app/language-selection.tsx`** — Captures `language_selected` with `{ language_code, language_name }` when the user confirms a language.
-- **`app/(tabs)/home.tsx`** — Captures `lesson_continue_tapped` with `{ language_code, unit_order, lesson_title }` when the Continue button is pressed.
-- **`hooks/useGoogleAuth.ts`** — Captures `user_signed_in_with_google` with `{ method: "google" }` on successful Google OAuth.
+The wizard has completed a deep integration of PostHog analytics into Lingora — a Duolingo-inspired AI language learning app built with Expo, Expo Router, Clerk authentication, and NativeWind. The integration covers the full user journey: onboarding, sign-up/sign-in (password and Google OAuth), email verification, language selection, and home screen engagement. `posthog.identify()` is called at sign-up, sign-in, and on app load via Clerk's `useUser()`. `$exception` error events are captured at all critical auth boundaries. Environment variables are set in `.env` and loaded via `expo-constants` through `app.config.js`. `PostHogProvider` wraps the app in `app/_layout.tsx` with autocapture and manual screen tracking enabled.
 
 ## Event tracking
 
 | Event | Description | File |
 |---|---|---|
-| `onboarding_get_started` | User taps Get Started on the onboarding screen — top of the acquisition funnel | `app/onboarding.tsx` |
-| `user_signed_up` | User completes email sign-up and verifies their email address | `app/(auth)/sign-up.tsx` |
-| `user_signed_in` | User signs in with email/password (or MFA) | `app/(auth)/sign-in.tsx` |
-| `user_signed_in_with_google` | User signs in or signs up via Google OAuth | `hooks/useGoogleAuth.ts` |
-| `language_selected` | User selects a language to learn and confirms with Continue | `app/language-selection.tsx` |
-| `lesson_continue_tapped` | User taps Continue on the home screen to resume their current lesson | `app/(tabs)/home.tsx` |
+| `onboarding_get_started` | User taps Get Started on the onboarding screen | `app/onboarding.tsx` |
+| `sign_up_attempted` | User taps Sign Up to initiate account creation | `app/(auth)/sign-up.tsx` |
+| `sign_up_failed` | Sign-up returns an error (e.g. email already in use, weak password) | `app/(auth)/sign-up.tsx` |
+| `email_verification_submitted` | User submits the email verification code during sign-up | `app/(auth)/sign-up.tsx` |
+| `user_signed_up` | User successfully completes account creation and email verification | `app/(auth)/sign-up.tsx` |
+| `sign_in_attempted` | User taps Sign In with email/password credentials | `app/(auth)/sign-in.tsx` |
+| `sign_in_failed` | Email/password sign-in returns an error from Clerk | `app/(auth)/sign-in.tsx` |
+| `user_signed_in` | User successfully completes sign-in (password or password_mfa method) | `app/(auth)/sign-in.tsx` |
+| `user_signed_in_with_google` | User successfully completes Google OAuth sign-in/sign-up | `hooks/useGoogleAuth.ts` |
+| `google_auth_failed` | Google OAuth flow throws an error | `hooks/useGoogleAuth.ts` |
+| `language_searched` | User types a query in the language search box (debounced 600ms) | `app/language-selection.tsx` |
+| `language_selected` | User confirms their chosen learning language and proceeds | `app/language-selection.tsx` |
+| `lesson_continue_tapped` | User taps Continue to resume their current lesson | `app/(tabs)/home.tsx` |
+| `today_plan_item_tapped` | User taps one of the items in Today's Plan on the home screen | `app/(tabs)/home.tsx` |
 
 ## Next steps
 
 We've built some insights and a dashboard for you to keep an eye on user behavior, based on the events we just instrumented:
 
-- [Analytics basics dashboard](/dashboard/694643)
-- [Acquisition funnel](/insights/vImBqKDj) — Conversion from Get Started → sign-up → language selection → first lesson
-- [New sign-ups over time](/insights/BAL3EN8v) — Daily email and Google sign-ups
-- [Language popularity](/insights/bz84XN2l) — Which languages users select most often
-- [Daily active learners](/insights/pbGFnMOu) — Unique users engaging with lessons each day
-- [Onboarding drop-off](/insights/eodlW5Se) — Users who tapped Get Started but didn't complete sign-up
+- [Analytics basics dashboard](/dashboard/700602)
+- [Sign-up conversion funnel](/insights/Q61ymq5y) — 3-step funnel: Get Started → attempted → account created
+- [Sign-in success rate](/insights/dPNVKfAq) — funnel: sign-in attempted → signed in (within 1 hour)
+- [Auth errors over time](/insights/Pb0YEyMZ) — trend of sign-in, sign-up, and Google auth failures
+- [New sign-ups over time](/insights/bYOVQIn5) — daily registrations by method (password vs Google)
+- [Home screen engagement](/insights/mmB2ZfvV) — trend of lesson continuation and Today's Plan taps
 
 ### Agent skill
 

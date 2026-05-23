@@ -22,6 +22,18 @@ export function useGoogleAuth() {
         router.replace("/");
       }
     } catch (err) {
+      const error = err as Error;
+      posthog.capture("google_auth_failed", { error_message: error.message });
+      posthog.capture("$exception", {
+        $exception_list: [
+          {
+            type: error.name,
+            value: error.message,
+            stacktrace: { type: "raw", frames: error.stack ?? "" },
+          },
+        ],
+        $exception_source: "google_auth",
+      });
       console.error("Google OAuth error:", err);
     }
   };
