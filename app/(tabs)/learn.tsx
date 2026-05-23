@@ -2,8 +2,8 @@ import LessonCard from "@/components/LessonCard";
 import { images } from "@/constants/images";
 import { getLessonsByUnit } from "@/data/lessons";
 import { getUnitsByLanguage } from "@/data/units";
-import { useLessonProgressStore } from "@/store/lessonProgressStore";
 import { useLanguageStore } from "@/store/languageStore";
+import { useLessonProgressStore } from "@/store/lessonProgressStore";
 import type { LanguageCode } from "@/types/learning";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
@@ -47,7 +47,7 @@ export default function LearnScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* ── Unit Header ──────────────────────────────────────── */}
-      <View style={styles.header}>
+      <View className="h-[210px] overflow-hidden relative">
         {currentUnit.image ? (
           <Image
             source={{ uri: currentUnit.image }}
@@ -63,7 +63,7 @@ export default function LearnScreen() {
         />
 
         {/* Bookmark row */}
-        <View style={styles.headerTopRow}>
+        <View className="flex-row justify-end items-center px-5 pt-[10px]">
           <View />
           <TouchableOpacity hitSlop={8}>
             <Ionicons name="bookmark-outline" size={22} color="white" />
@@ -73,30 +73,30 @@ export default function LearnScreen() {
         {/* Mascot */}
         <Image
           source={images.mascotWelcome}
-          style={styles.mascot}
+          className="w-[100px] h-[100px] self-center mt-2"
           resizeMode="contain"
         />
 
         {/* Unit info */}
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.unitTitle}>{currentUnit.title}</Text>
-          <Text style={styles.unitSubtitle}>
+        <View className="items-center mt-[6px] pb-4">
+          <Text className="font-poppins-bold text-[22px] leading-[30px] text-white text-center">{currentUnit.title}</Text>
+          <Text className="font-poppins text-[13px] leading-5 text-white/85 text-center mt-0.5">
             Unit {currentUnit.order} · {completedCount} / {lessons.length} lessons
           </Text>
         </View>
       </View>
 
       {/* ── Tab Row ──────────────────────────────────────────── */}
-      <View style={styles.tabRow}>
+      <View className="flex-row bg-white border-b border-border">
         {(["lessons", "practice"] as Tab[]).map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab)}
-            style={[styles.tabItem, activeTab === tab && styles.activeTabItem]}
+            className={`flex-1 items-center py-[14px] border-b-2 ${activeTab === tab ? "border-b-brand-purple" : "border-b-transparent"}`}
             activeOpacity={0.7}
           >
             <Text
-              style={[styles.tabText, activeTab === tab && styles.activeTabText]}
+              className={`text-[14px] leading-[22px] ${activeTab === tab ? "font-poppins-semibold color-brand-purple" : "font-poppins color-muted"}`}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </Text>
@@ -134,70 +134,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#ffffff",
-  },
-  header: {
-    height: 210,
-    overflow: "hidden",
-    position: "relative",
-  },
-  headerTopRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 10,
-  },
-  mascot: {
-    width: 100,
-    height: 100,
-    alignSelf: "center",
-    marginTop: 8,
-  },
-  headerTextContainer: {
-    alignItems: "center",
-    marginTop: 6,
-    paddingBottom: 16,
-  },
-  unitTitle: {
-    fontFamily: "Poppins-Bold",
-    fontSize: 22,
-    lineHeight: 30,
-    color: "white",
-    textAlign: "center",
-  },
-  unitSubtitle: {
-    fontFamily: "Poppins-Regular",
-    fontSize: 13,
-    lineHeight: 20,
-    color: "rgba(255,255,255,0.85)",
-    textAlign: "center",
-    marginTop: 2,
-  },
-  tabRow: {
-    flexDirection: "row",
-    backgroundColor: "white",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 14,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
-  },
-  activeTabItem: {
-    borderBottomColor: "#6C4EF5",
-  },
-  tabText: {
-    fontFamily: "Poppins-Regular",
-    fontSize: 14,
-    lineHeight: 22,
-    color: "#6B7280",
-  },
-  activeTabText: {
-    fontFamily: "Poppins-SemiBold",
-    color: "#6C4EF5",
   },
   listContent: {
     paddingBottom: 32,
