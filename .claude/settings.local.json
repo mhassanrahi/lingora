@@ -12,7 +12,9 @@
       "PowerShell(ls -Path \"d:\\\\projects\\\\RN\\\\lingora\" -Force | Where-Object { $_.PSIsContainer -or $_.Name -eq \"package.json\" -or $_.Name -eq \"global.css\" } | Select-Object Name)",
       "Bash(Get-ChildItem -Path \"d:\\\\projects\\\\RN\\\\lingora\" -Force)",
       "Bash(Select-Object Name, FullName)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Skill(stream)",
+      "Skill(stream:*)"
     ]
   }
 }

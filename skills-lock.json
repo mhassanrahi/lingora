@@ -95,7 +95,7 @@
       "source": "GetStream/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/stream/SKILL.md",
-      "computedHash": "fd8cfcd4d279599d64214710896412486014c5d18f2332849bc4c28a3baa5b8d"
+      "computedHash": "07cf65543e18546e64834662453931af2327ff540afc91f3dd54fc618bc4258e"
     },
     "stream-android": {
       "source": "GetStream/agent-skills",
@@ -125,7 +125,13 @@
       "source": "GetStream/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/stream-react-native/SKILL.md",
-      "computedHash": "62b5d789ecf5ea6986e93a33a879bfa6783d864f53a00f0f41a9d06f66216dea"
+      "computedHash": "adda8ae74c3732acf6b0c8baf50646161cfed153897e1b1ad729b23e85cf2443"
+    },
+    "stream-swift": {
+      "source": "GetStream/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/stream-swift/SKILL.md",
+      "computedHash": "50a25cbaba157affbc56ae93de2cb82f0ce4fea5529ea0937a55cf656f13ed17"
     },
     "upgrading-expo": {
       "source": "expo/skills",

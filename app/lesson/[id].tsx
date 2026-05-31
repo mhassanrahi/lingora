@@ -1,10 +1,20 @@
 import { images } from "@/constants/images";
 import { getLessonById } from "@/data/lessons";
 import type { PhraseItem } from "@/types/learning";
+import { useUser } from "@clerk/expo";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
 import {
+  Call,
+  CallingState,
+  StreamCall,
+  useCall,
+  useCallStateHooks,
+  useStreamVideoClient,
+} from "@stream-io/video-react-native-sdk";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
   Dimensions,
   Image,
   StyleSheet,
@@ -24,33 +34,46 @@ const FEEDBACK = [
   { label: "Grammar", value: "Good", color: "#6C4EF5" },
 ];
 
-export default function LessonScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
-  const lesson = getLessonById(id ?? "");
+// ─── Lesson body — lives inside <StreamCall> for hook access ─────────────────
+
+function LessonBody({
+  lessonId,
+  joinError,
+  onBack,
+  onEndCall,
+}: {
+  lessonId: string;
+  joinError: string | null;
+  onBack: () => void;
+  onEndCall: () => Promise<void>;
+}) {
+  const lesson = getLessonById(lessonId);
+  const call = useCall();
+  const { useCallCallingState, useMicrophoneState, useParticipants } =
+    useCallStateHooks();
+  const callingState = useCallCallingState();
+  const { status: micStatus, isSpeakingWhileMuted } = useMicrophoneState();
+  const participants = useParticipants();
 
   const [phase, setPhase] = useState<SessionPhase>("intro");
-  const [isMuted, setIsMuted] = useState(false);
   const [showSubtitles, setShowSubtitles] = useState(true);
   const [phraseIdx, setPhraseIdx] = useState(0);
 
   const phrases: PhraseItem[] =
     lesson?.activities.find((a) => a.type === "phrase")?.phrases ?? [];
 
-  const bubbleText =
-    phase === "intro"
-      ? (lesson?.aiTeacherPrompt.intro ?? "")
-      : phase === "feedback"
-        ? (lesson?.aiTeacherPrompt.encouragement ?? "")
-        : (phrases[phraseIdx]?.phrase ?? "");
+  const isMuted = micStatus === "disabled";
+  const isConnecting =
+    callingState === CallingState.IDLE ||
+    callingState === CallingState.JOINING ||
+    callingState === CallingState.RECONNECTING;
+  const isJoined = callingState === CallingState.JOINED;
+  const isEnded = callingState === CallingState.LEFT;
+  const hasError = !!joinError;
 
-  const bubbleTranslation =
-    phase === "teaching" && showSubtitles
-      ? (phrases[phraseIdx]?.translation ?? "")
-      : "";
-
+  // Auto-advance lesson phases once joined
   useEffect(() => {
-    if (!lesson) return;
+    if (!lesson || !isJoined) return;
     if (phase === "intro") {
       const t = setTimeout(() => setPhase("teaching"), 3200);
       return () => clearTimeout(t);
@@ -65,30 +88,92 @@ export default function LessonScreen() {
       }, 4000);
       return () => clearTimeout(t);
     }
-  }, [phase, phraseIdx, lesson, phrases.length]);
+  }, [phase, phraseIdx, lesson, phrases.length, isJoined]);
 
   if (!lesson) return null;
 
-  const sessionLabel =
-    phase === "intro"
-      ? "Starting session..."
-      : phase === "teaching"
-        ? `Phrase ${phraseIdx + 1} of ${phrases.length}`
-        : "Great session!";
+  // ── Derived display values ──────────────────────────────────────────────────
+
+  const dotColor = hasError
+    ? "#FF4D4F"
+    : isEnded
+      ? "#6B7280"
+      : isConnecting
+        ? "#F59E0B"
+        : "#21C168";
+
+  const sessionLabel = hasError
+    ? "Connection error"
+    : isEnded
+      ? "Session ended"
+      : isConnecting
+        ? callingState === CallingState.RECONNECTING
+          ? "Reconnecting..."
+          : "Connecting..."
+        : phase === "intro"
+          ? "Starting session..."
+          : phase === "teaching"
+            ? `Phrase ${phraseIdx + 1} of ${phrases.length}`
+            : "Great session!";
+
+  const onlineLabel = hasError
+    ? "Error"
+    : isEnded
+      ? "Ended"
+      : isConnecting
+        ? "Connecting"
+        : "Live";
+
+  const bubbleText =
+    isConnecting || hasError || isEnded
+      ? isConnecting
+        ? "Preparing your lesson..."
+        : hasError
+          ? (joinError ?? "Could not connect")
+          : "Session has ended."
+      : phase === "intro"
+        ? (lesson.aiTeacherPrompt.intro ?? "")
+        : phase === "feedback"
+          ? (lesson.aiTeacherPrompt.encouragement ?? "")
+          : (phrases[phraseIdx]?.phrase ?? "");
+
+  const bubbleTranslation =
+    isJoined && phase === "teaching" && showSubtitles
+      ? (phrases[phraseIdx]?.translation ?? "")
+      : "";
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
+  const handleToggleMute = async () => {
+    if (!call || !isJoined) return;
+    try {
+      await call.microphone.toggle();
+    } catch (err) {
+      console.error("Mic toggle failed", err);
+    }
+  };
+
+  const handleEndCall = async () => {
+    await onEndCall();
+  };
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <>
       {/* ── Header ───────────────────────────────────────────────── */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
+        <TouchableOpacity onPress={onBack} hitSlop={8}>
           <Ionicons name="chevron-back" size={26} color="white" />
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>AI Teacher</Text>
           <View style={styles.onlineRow}>
-            <View style={styles.onlineDot} />
-            <Text style={styles.onlineLabel}>Online</Text>
+            <View style={[styles.onlineDot, { backgroundColor: dotColor }]} />
+            <Text style={[styles.onlineLabel, { color: dotColor }]}>
+              {onlineLabel}
+            </Text>
           </View>
         </View>
 
@@ -99,8 +184,15 @@ export default function LessonScreen() {
               <Text style={styles.cameraBadgeText}>{lesson.xpReward}</Text>
             </View>
           </View>
+          {/* Participant count badge */}
           <View style={styles.avatar}>
-            <Ionicons name="person" size={16} color="#6C4EF5" />
+            {isJoined ? (
+              <Text style={styles.participantCount}>
+                {participants.length}
+              </Text>
+            ) : (
+              <Ionicons name="person" size={16} color="#6C4EF5" />
+            )}
           </View>
         </View>
       </View>
@@ -109,6 +201,18 @@ export default function LessonScreen() {
       <View style={styles.body}>
         {/* Teacher area */}
         <View style={styles.teacherArea}>
+          {/* Connecting overlay */}
+          {isConnecting && !hasError && (
+            <View style={styles.connectingOverlay}>
+              <ActivityIndicator size="large" color="#6C4EF5" />
+              <Text style={styles.connectingText}>
+                {callingState === CallingState.RECONNECTING
+                  ? "Reconnecting to session..."
+                  : "Joining session..."}
+              </Text>
+            </View>
+          )}
+
           {/* Mascot */}
           <Image
             source={images.mascotWelcome}
@@ -118,12 +222,29 @@ export default function LessonScreen() {
 
           {/* Student thumbnail */}
           <View style={styles.studentThumb}>
-            <Ionicons name="person" size={28} color="rgba(255,255,255,0.7)" />
+            {isJoined ? (
+              <View style={styles.studentThumbInner}>
+                <Ionicons
+                  name={isMuted ? "mic-off" : "mic"}
+                  size={18}
+                  color={isMuted ? "#FF4D4F" : "#21C168"}
+                />
+                {isSpeakingWhileMuted && (
+                  <Text style={styles.mutedHint}>Muted</Text>
+                )}
+              </View>
+            ) : (
+              <Ionicons
+                name="person"
+                size={28}
+                color="rgba(255,255,255,0.7)"
+              />
+            )}
           </View>
 
           {/* Session status pill */}
           <View style={styles.statusPill}>
-            <View style={styles.statusDot} />
+            <View style={[styles.statusDot, { backgroundColor: dotColor }]} />
             <Text style={styles.statusText}>{sessionLabel}</Text>
           </View>
 
@@ -138,8 +259,12 @@ export default function LessonScreen() {
                   <Text style={styles.bubbleSub}>{bubbleTranslation}</Text>
                 ) : null}
               </View>
-              <TouchableOpacity hitSlop={8}>
-                <Ionicons name="volume-medium" size={22} color="#6C4EF5" />
+              <TouchableOpacity hitSlop={8} disabled={!isJoined}>
+                <Ionicons
+                  name="volume-medium"
+                  size={22}
+                  color={isJoined ? "#6C4EF5" : "#C4C4C4"}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -147,16 +272,21 @@ export default function LessonScreen() {
 
         {/* ── Controls ─────────────────────────────────────────── */}
         <View style={styles.controls}>
-          {/* Camera — disabled (audio-only) */}
-          <TouchableOpacity style={styles.ctrlBtn} activeOpacity={0.8}>
+          {/* Camera — audio-only lesson, always off */}
+          <TouchableOpacity style={styles.ctrlBtn} activeOpacity={0.8} disabled>
             <Ionicons name="videocam-off-outline" size={22} color="white" />
           </TouchableOpacity>
 
-          {/* Mic */}
+          {/* Mic — wired to Stream microphone */}
           <TouchableOpacity
-            style={[styles.ctrlBtn, isMuted && styles.ctrlBtnActive]}
-            onPress={() => setIsMuted((v) => !v)}
+            style={[
+              styles.ctrlBtn,
+              isMuted && isJoined && styles.ctrlBtnActive,
+              !isJoined && styles.ctrlBtnDisabled,
+            ]}
+            onPress={handleToggleMute}
             activeOpacity={0.8}
+            disabled={!isJoined}
           >
             <Ionicons
               name={isMuted ? "mic-off" : "mic-outline"}
@@ -174,10 +304,10 @@ export default function LessonScreen() {
             <Ionicons name="text-outline" size={22} color="white" />
           </TouchableOpacity>
 
-          {/* End Call */}
+          {/* End Call — wired to Stream call.leave() */}
           <TouchableOpacity
             style={styles.endCallBtn}
-            onPress={() => router.back()}
+            onPress={handleEndCall}
             activeOpacity={0.8}
           >
             <View style={styles.endCallIcon}>
@@ -204,9 +334,114 @@ export default function LessonScreen() {
           ))}
         </View>
       </View>
+    </>
+  );
+}
+
+// ─── Root screen — manages call lifecycle ────────────────────────────────────
+
+export default function LessonScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const lesson = getLessonById(id ?? "");
+  const { user } = useUser();
+  const client = useStreamVideoClient();
+
+  const [call, setCall] = useState<Call | null>(null);
+  const [joinError, setJoinError] = useState<string | null>(null);
+  // Track whether leave() has already been requested to guard against double-leave
+  const leavingRef = useRef(false);
+
+  useEffect(() => {
+    const userId = user?.id;
+    if (!client || !userId || !lesson) return;
+
+    leavingRef.current = false;
+    setJoinError(null);
+
+    const safeUserId = userId.replace(/[^a-zA-Z0-9]/g, "").substring(0, 10);
+    const callId = `lesson-${id}-${safeUserId}`;
+
+    const c = client.call("default", callId, { reuseInstance: true });
+    setCall(c);
+
+    // Audio-only lesson — disable camera before joining
+    c.camera.disable().catch(console.error);
+
+    c.join({ create: true }).catch((err: unknown) => {
+      const msg =
+        err instanceof Error ? err.message : "Failed to join the session";
+      setJoinError(msg);
+    });
+
+    return () => {
+      if (!leavingRef.current && c.state.callingState !== CallingState.LEFT) {
+        leavingRef.current = true;
+        c.leave().catch(console.error);
+      }
+      setCall(null);
+    };
+    // lesson is derived from id; including it avoids stale-closure warning
+  }, [client, user?.id, id, lesson]);
+
+  const handleBack = () => router.back();
+
+  const handleEndCall = async () => {
+    if (call && !leavingRef.current && call.state.callingState !== CallingState.LEFT) {
+      leavingRef.current = true;
+      await call.leave().catch(console.error);
+    }
+    router.back();
+  };
+
+  if (!lesson) return null;
+
+  // StreamVideo client not yet ready (user not authenticated or initialising)
+  if (!call) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBack} hitSlop={8}>
+            <Ionicons name="chevron-back" size={26} color="white" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>AI Teacher</Text>
+            <View style={styles.onlineRow}>
+              <View style={[styles.onlineDot, { backgroundColor: "#F59E0B" }]} />
+              <Text style={[styles.onlineLabel, { color: "#F59E0B" }]}>
+                Connecting
+              </Text>
+            </View>
+          </View>
+          <View style={styles.headerRight}>
+            <View style={styles.avatar}>
+              <Ionicons name="person" size={16} color="#6C4EF5" />
+            </View>
+          </View>
+        </View>
+        <View style={[styles.body, styles.bodyLoading]}>
+          <ActivityIndicator size="large" color="#6C4EF5" />
+          <Text style={styles.loadingText}>Setting up your session…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StreamCall call={call}>
+        <LessonBody
+          lessonId={id ?? ""}
+          joinError={joinError}
+          onBack={handleBack}
+          onEndCall={handleEndCall}
+        />
+      </StreamCall>
     </SafeAreaView>
   );
 }
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -284,6 +519,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  participantCount: {
+    fontFamily: "Poppins-Bold",
+    fontSize: 13,
+    color: "#6C4EF5",
+  },
 
   // ── Body
   body: {
@@ -292,6 +532,16 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: "hidden",
+  },
+  bodyLoading: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+  },
+  loadingText: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 14,
+    color: "#6B7280",
   },
 
   // ── Teacher area
@@ -302,6 +552,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     position: "relative",
     overflow: "hidden",
+  },
+  connectingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(238,240,255,0.85)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+    gap: 12,
+  },
+  connectingText: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 14,
+    color: "#6C4EF5",
   },
   mascot: {
     width: SCREEN_W * 0.72,
@@ -321,6 +584,15 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.12)",
     overflow: "hidden",
+  },
+  studentThumbInner: {
+    alignItems: "center",
+    gap: 4,
+  },
+  mutedHint: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 9,
+    color: "#FF4D4F",
   },
   statusPill: {
     position: "absolute",
@@ -405,6 +677,9 @@ const styles = StyleSheet.create({
   },
   ctrlBtnActive: {
     backgroundColor: "#6C4EF5",
+  },
+  ctrlBtnDisabled: {
+    opacity: 0.4,
   },
   endCallBtn: {
     width: 56,
