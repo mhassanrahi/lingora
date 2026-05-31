@@ -70,10 +70,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "¡Hola! I'm your Spanish teacher. Today we'll learn how to greet people in Spanish. Ready?",
-      encouragement: "Great job! You're already sounding like a native speaker.",
+      intro: "Hey, welcome to your very first Spanish lesson — I'm so excited you're here! Our first word is 'Hola', which just means 'Hello'. Can you say 'Hola' back to me?",
+      encouragement: "Yes! That's it — you're already speaking Spanish! You're doing amazing.",
       lessonContext:
-        "This lesson covers everyday Spanish greetings. Focus on pronunciation and the informal/formal distinction.",
+        "This lesson covers five everyday Spanish greetings: Hola, Adiós, Buenos días, Gracias, Por favor. Teach only these words and the three phrases listed. Introduce each word slowly with its translation and pronunciation. Do not teach unrelated vocabulary or switch to other languages.",
     },
   },
 
@@ -134,9 +134,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "¡Hola de nuevo! Today we talk about your daily life. Let's practice!",
-      encouragement: "¡Muy bien! You're building a solid foundation.",
-      lessonContext: "Everyday routine vocabulary and simple sentences about daily activities.",
+      intro: "Hola again — great to see you back! Today we're talking about daily life in Spanish. Let's start with 'casa', which means 'house' — can you say 'casa'?",
+      encouragement: "¡Muy bien! You're building a real Spanish vocabulary now — keep going!",
+      lessonContext:
+        "This lesson covers five Spanish daily-life words: casa, trabajo, comer, dormir, tiempo. Teach only these words and the three routine phrases listed. Introduce each word with its translation and pronunciation. Do not introduce other topics or languages.",
     },
   },
 
@@ -197,9 +198,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "¡Bienvenido al café! Today we learn how to order in a Spanish café.",
-      encouragement: "¡Excelente! You'd fit right in at a café in Madrid.",
-      lessonContext: "Café vocabulary and ordering phrases for beginners.",
+      intro: "Welcome to the café! Today we're learning how to order food and drinks in Spanish — so useful for real life! Our first word is 'café', which means 'coffee'. Can you say 'café'?",
+      encouragement: "¡Excelente! You'd fit right in at a café in Madrid — seriously!",
+      lessonContext:
+        "This lesson covers five Spanish café words: café, agua, mesa, camarero, cuenta. Teach only these words and the three ordering phrases listed. Introduce each word with translation and pronunciation. Do not teach unrelated vocabulary or switch to other languages.",
     },
   },
 
@@ -260,9 +262,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "¡Vámonos! Today we learn how to get around in a Spanish-speaking city.",
-      encouragement: "¡Perfecto! You'll never get lost again.",
-      lessonContext: "Directional vocabulary and phrases for navigating a city.",
+      intro: "¡Vámonos — let's go! Today we're learning how to find our way around a Spanish city. First word: 'izquierda', which means 'left' — say it slowly: 'ees-KYEHR-dah'. Can you give it a try?",
+      encouragement: "¡Perfecto! You'd never get lost in Spain now — great work!",
+      lessonContext:
+        "This lesson covers five Spanish direction words: izquierda, derecha, recto, calle, cerca. Teach only these words and the three direction phrases listed. Introduce each word with translation and pronunciation. Stay strictly within this lesson.",
     },
   },
 
@@ -323,9 +326,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "¡Vamos de compras! Today we learn how to shop in Spanish.",
-      encouragement: "¡Bien hecho! You're ready to bargain at the market.",
-      lessonContext: "Shopping vocabulary and phrases for buying items and asking prices.",
+      intro: "Let's go shopping in Spanish! Today you'll learn how to talk about prices and buy things. First word: 'tienda', which means 'shop' or 'store' — say it: 'TYEHN-dah'. Ready to try?",
+      encouragement: "¡Bien hecho! You're ready to hit the market — seriously impressive!",
+      lessonContext:
+        "This lesson covers five Spanish shopping words: tienda, precio, barato, caro, comprar. Teach only these words and the three shopping phrases listed. Introduce each word with translation and pronunciation. Do not introduce unrelated vocabulary.",
     },
   },
 
@@ -386,9 +390,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "¡Hola, familia! Today we talk about family and relationships in Spanish.",
-      encouragement: "¡Fantástico! You can now talk about your loved ones in Spanish.",
-      lessonContext: "Family vocabulary and simple sentences describing relationships.",
+      intro: "Today we're talking about something close to everyone's heart — family! In Spanish, 'familia' means 'family'. It sounds familiar, right? Can you say 'familia'?",
+      encouragement: "¡Fantástico! You can now talk about your loved ones in Spanish — that's really special!",
+      lessonContext:
+        "This lesson covers five Spanish family words: familia, madre, padre, hermano, amigo. Teach only these words and the three family phrases listed. Introduce each word with translation and pronunciation. Stay strictly within this lesson.",
     },
   },
 
@@ -447,9 +452,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Bonjour! I'm your French teacher. Let's start with greetings — the first step to any conversation.",
-      encouragement: "Très bien! You're speaking French already.",
-      lessonContext: "Introductory French greetings and self-introduction phrases.",
+      intro: "Bonjour — and welcome to French! I'm so glad you're here! Our very first word is 'Bonjour', which means 'Hello' or 'Good morning'. Can you say 'Bonjour' back to me?",
+      encouragement: "Très bien — very good! You're already sounding French — I love it!",
+      lessonContext:
+        "This lesson covers five French greetings: Bonjour, Bonsoir, Au revoir, Merci, S'il vous plaît. Teach only these words and the two introduction phrases listed. Introduce each word with translation and pronunciation. Do not teach other French topics or switch languages.",
     },
   },
 
@@ -510,9 +516,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Bonjour encore! Today we talk about daily life in French.",
-      encouragement: "Très bien! Your French is coming along nicely.",
-      lessonContext: "Everyday routine vocabulary for French learners.",
+      intro: "Bonjour encore — hello again! Today we're talking about daily life in French. Let's start with 'maison', which means 'house' — say it: 'meh-ZON'. Can you try?",
+      encouragement: "Très bien! Your French is really coming along — you should be proud!",
+      lessonContext:
+        "This lesson covers five French daily-life words: maison, travail, manger, dormir, temps. Teach only these words and the three routine phrases listed. Introduce each word with translation and pronunciation. Do not introduce other topics.",
     },
   },
 
@@ -573,9 +580,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Bienvenue au café! Today we practice ordering in French.",
-      encouragement: "Excellent! You could order at a Parisian café right now.",
-      lessonContext: "Café ordering vocabulary and phrases for French beginners.",
+      intro: "Bienvenue au café — welcome to the café! Imagine you're sitting in Paris right now! Our first word is 'café', which means 'coffee'. Can you say 'café'?",
+      encouragement: "Excellent! You could genuinely order at a Parisian café right now — well done!",
+      lessonContext:
+        "This lesson covers five French café words: café, eau, table, serveur, addition. Teach only these words and the three ordering phrases listed. Introduce each word with translation and pronunciation. Stay strictly within this lesson.",
     },
   },
 
@@ -636,9 +644,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Allons-y! Today we navigate through a French city.",
-      encouragement: "Parfait! You can now find your way in Paris.",
-      lessonContext: "Directional vocabulary for navigating French cities.",
+      intro: "Allons-y — let's go! Today we're navigating through a French city together. First word: 'gauche', which means 'left' — say it: 'GOHSH'. Give it a try!",
+      encouragement: "Parfait — perfect! You could find your way around Paris now — I'm impressed!",
+      lessonContext:
+        "This lesson covers five French direction words: gauche, droite, tout droit, rue, près. Teach only these words and the three direction phrases listed. Introduce each word with translation and pronunciation. Stay strictly within this lesson.",
     },
   },
 
@@ -699,9 +708,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Faisons du shopping! Today we go shopping in French.",
-      encouragement: "Bravo! You're ready to shop on the Champs-Élysées.",
-      lessonContext: "Shopping vocabulary and price-asking phrases in French.",
+      intro: "Faisons du shopping — let's go shopping in French! First word: 'magasin', which means 'shop' or 'store' — say it: 'mah-gah-ZAN'. Ready to try?",
+      encouragement: "Bravo! You're genuinely ready to shop on the Champs-Élysées now — great work!",
+      lessonContext:
+        "This lesson covers five French shopping words: magasin, prix, bon marché, cher, acheter. Teach only these words and the three shopping phrases listed. Introduce each word with translation and pronunciation. Stay strictly within this lesson.",
     },
   },
 
@@ -762,9 +772,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Parlons de la famille! Today we talk about family in French.",
-      encouragement: "Magnifique! You can now talk about your family in French.",
-      lessonContext: "Family vocabulary and descriptive sentences in French.",
+      intro: "Parlons de la famille — let's talk about family! Today's first word is 'famille', which means 'family' — it even sounds like English! Say it: 'fah-MEE'. Can you try?",
+      encouragement: "Magnifique! You can now talk about your family in French — really fantastic!",
+      lessonContext:
+        "This lesson covers five French family words: famille, mère, père, frère, ami(e). Teach only these words and the three family phrases listed. Introduce each word with translation and pronunciation. Do not introduce other topics.",
     },
   },
 
@@ -822,9 +833,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Hallo! Welcome to your first German lesson. Let's learn how to greet people.",
-      encouragement: "Sehr gut! You're getting the hang of it.",
-      lessonContext: "Introductory German greetings. Note that German has formal (Sie) and informal (du) forms.",
+      intro: "Hallo — and welcome to your very first German lesson! German's going to surprise you — it's more fun than it sounds! Our first word: 'Hallo', which is just 'Hello'. Can you say 'Hallo'?",
+      encouragement: "Sehr gut — very good! You're picking this up so fast — keep it up!",
+      lessonContext:
+        "This lesson covers five German greetings: Hallo, Guten Morgen, Auf Wiedersehen, Danke, Bitte. Teach only these words and the two introduction phrases listed. Note the formal (Sie) vs informal (du) distinction where it comes up. Do not teach other German topics.",
     },
   },
 
@@ -885,9 +897,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Guten Tag! Today we talk about daily life in German.",
-      encouragement: "Sehr gut! You're building a great vocabulary.",
-      lessonContext: "Everyday routine vocabulary for German learners.",
+      intro: "Guten Tag — good day! Today we're talking about everyday life in German. Let's start with 'Haus', which means 'house' — it even sounds a bit like English! Can you say 'Haus'?",
+      encouragement: "Sehr gut! You're building a great foundation — I'm really proud of you!",
+      lessonContext:
+        "This lesson covers five German daily-life words: Haus, Arbeit, Essen, Schlafen, Zeit. Teach only these words and the three routine phrases listed. Introduce each word with translation and pronunciation. Stay strictly within this lesson.",
     },
   },
 
@@ -948,9 +961,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Willkommen im Café! Today we learn how to order in German.",
-      encouragement: "Wunderbar! You can now order at a German café.",
-      lessonContext: "Café vocabulary and ordering phrases for German beginners.",
+      intro: "Willkommen im Café — welcome to the café! Today we're ordering food and drinks in German. First word: 'Kaffee', which means 'coffee' — say it: 'KAH-feh'. Can you try?",
+      encouragement: "Wunderbar — wonderful! You could genuinely order at a German café now!",
+      lessonContext:
+        "This lesson covers five German café words: Kaffee, Wasser, Tisch, Kellner, Rechnung. Teach only these words and the three ordering phrases listed. Introduce each word with translation and pronunciation. Stay strictly within this lesson.",
     },
   },
 
@@ -1011,9 +1025,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Los geht's! Today we navigate through a German city.",
-      encouragement: "Prima! You can now find your way in Berlin.",
-      lessonContext: "Directional vocabulary for navigating German cities.",
+      intro: "Los geht's — let's go! Today we're navigating a German city together. First word: 'links', which means 'left' — short and sharp: 'LINKS'. Can you say it?",
+      encouragement: "Prima! You could find your way around Berlin now — seriously well done!",
+      lessonContext:
+        "This lesson covers five German direction words: links, rechts, geradeaus, Straße, nah. Teach only these words and the three direction phrases listed. Introduce each word with translation and pronunciation. Do not introduce other topics.",
     },
   },
 
@@ -1074,9 +1089,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Auf zum Einkaufen! Today we go shopping in German.",
-      encouragement: "Ausgezeichnet! You're ready to shop in Germany.",
-      lessonContext: "Shopping vocabulary and price-asking phrases in German.",
+      intro: "Auf zum Einkaufen — let's go shopping in German! First word: 'Geschäft', which means 'shop' or 'store' — say it: 'guh-SHEFT'. Want to give it a try?",
+      encouragement: "Ausgezeichnet — excellent! You're genuinely ready to shop in Germany now!",
+      lessonContext:
+        "This lesson covers five German shopping words: Geschäft, Preis, günstig, teuer, kaufen. Teach only these words and the three shopping phrases listed. Introduce each word with translation and pronunciation. Stay strictly within this lesson.",
     },
   },
 
@@ -1137,9 +1153,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Sprechen wir über die Familie! Today we talk about family in German.",
-      encouragement: "Toll gemacht! You can now talk about your family in German.",
-      lessonContext: "Family vocabulary and descriptive sentences in German.",
+      intro: "Sprechen wir über die Familie — let's talk about family! First word: 'Familie', which means 'family' — and it sounds so close to English! Say it: 'fah-MEE-lyeh'. Can you try?",
+      encouragement: "Toll gemacht — well done! You can now talk about your family in German — that's brilliant!",
+      lessonContext:
+        "This lesson covers five German family words: Familie, Mutter, Vater, Bruder, Freund(in). Teach only these words and the three family phrases listed. Introduce each word with translation and pronunciation. Stay strictly within this lesson.",
     },
   },
 
@@ -1198,10 +1215,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Konnichiwa! Welcome to Japanese. This is a beautiful language — let's start with greetings.",
-      encouragement: "Yoku dekimashita! (Well done!) You're off to a great start.",
+      intro: "Konnichiwa — hello, and welcome to Japanese! This is such a beautiful language, and we'll go step by step. Our very first word is 'Konnichiwa', which means 'Hello' — say it with me: 'Kon-ni-chi-wa'. Can you try?",
+      encouragement: "Yoku dekimashita — well done! You're off to a wonderful start — I'm so impressed!",
       lessonContext:
-        "Basic Japanese greetings. Japanese uses different levels of politeness — we start with the polite form.",
+        "This lesson covers five Japanese greetings: こんにちは, おはようございます, さようなら, ありがとう, すみません. Teach only these words and the two introduction phrases listed. We use the polite form throughout. Do not introduce other Japanese topics or scripts.",
     },
   },
 
@@ -1262,9 +1279,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Konnichiwa! Today we talk about daily life in Japanese.",
-      encouragement: "Yoku dekimashita! Great progress!",
-      lessonContext: "Everyday routine vocabulary for Japanese learners.",
+      intro: "Konnichiwa — great to see you again! Today we're talking about daily life in Japanese. Let's start with 'ie' — written いえ — which means 'home' or 'house'. Say it: 'ee-eh'. Can you try?",
+      encouragement: "Yoku dekimashita — well done! Great progress today — you're doing brilliantly!",
+      lessonContext:
+        "This lesson covers five Japanese daily-life words: いえ, しごと, たべる, ねる, じかん. Teach only these words and the three routine phrases listed. Introduce each word with translation and pronunciation. Do not introduce other topics or additional vocabulary.",
     },
   },
 
@@ -1325,9 +1343,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Irasshaimase! Welcome to the café. Today we order in Japanese.",
-      encouragement: "Jouzu desu ne! You sound very natural.",
-      lessonContext: "Café vocabulary and ordering phrases for Japanese learners.",
+      intro: "Irasshaimase — welcome to the café! Today we're ordering food and drinks in Japanese. First word: 'Koohii' — コーヒー — which means 'coffee'. Say it: 'Koh-hee'. Can you try?",
+      encouragement: "Jouzu desu ne — you sound very natural! Seriously, that was great!",
+      lessonContext:
+        "This lesson covers five Japanese café words: コーヒー, みず, テーブル, てんいん, おかいけい. Teach only these words and the three ordering phrases listed. Introduce each word with translation and pronunciation. Stay strictly within this lesson.",
     },
   },
 
@@ -1388,9 +1407,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Ikimashou! Today we navigate through a Japanese city.",
-      encouragement: "Subarashii! You can now find your way in Tokyo.",
-      lessonContext: "Directional vocabulary for navigating Japanese cities.",
+      intro: "Ikimashou — let's go! Today we're finding our way around a Japanese city. First word: 'hidari' — ひだり — which means 'left'. Say it: 'hee-dah-ree'. Give it a try!",
+      encouragement: "Subarashii — wonderful! You'd navigate Tokyo with ease now — amazing work!",
+      lessonContext:
+        "This lesson covers five Japanese direction words: ひだり, みぎ, まっすぐ, みち, ちかく. Teach only these words and the three direction phrases listed. Introduce each word with translation and pronunciation. Do not introduce other topics.",
     },
   },
 
@@ -1451,9 +1471,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Kaimono ni ikimashou! Today we go shopping in Japanese.",
-      encouragement: "Yokatta! You're ready to shop in Japan.",
-      lessonContext: "Shopping vocabulary and price-asking phrases in Japanese.",
+      intro: "Kaimono ni ikimashou — let's go shopping in Japanese! First word: 'mise' — みせ — which means 'shop' or 'store'. Say it: 'mee-seh'. Easy, right? Can you try?",
+      encouragement: "Yokatta — wonderful! You're genuinely ready to shop in Japan — great job!",
+      lessonContext:
+        "This lesson covers five Japanese shopping words: みせ, ねだん, やすい, たかい, かう. Teach only these words and the three shopping phrases listed. Introduce each word with translation and pronunciation. Stay strictly within this lesson.",
     },
   },
 
@@ -1514,9 +1535,10 @@ export const LESSONS: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      intro: "Kazoku no hanashi wo shimashou! Today we talk about family in Japanese.",
-      encouragement: "Kanpeki! You can now talk about your family in Japanese.",
-      lessonContext: "Family vocabulary and descriptive sentences in Japanese.",
+      intro: "Kazoku no hanashi wo shimashou — let's talk about family! First word: 'kazoku' — かぞく — which means 'family'. Say it: 'kah-zo-ku'. Can you try?",
+      encouragement: "Kanpeki — perfect! You can now talk about your family in Japanese — truly fantastic!",
+      lessonContext:
+        "This lesson covers five Japanese family words: かぞく, はは, ちち, あに, ともだち. Teach only these words and the three family phrases listed. Introduce each word with translation and pronunciation. Stay strictly within this lesson.",
     },
   },
 ];
