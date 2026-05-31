@@ -40,3 +40,34 @@ export async function fetchStreamSession(params: {
   }
   return res.json();
 }
+
+export async function startAgent(params: {
+  callId: string;
+  lessonId: string;
+  language: string;
+  userId: string;
+}): Promise<{ sessionId: string }> {
+  const url = `${getServerBaseUrl()}/api/agent-start`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    throw new Error(`Agent start failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function stopAgent(params: {
+  callId: string;
+  sessionId: string;
+}): Promise<void> {
+  const url = `${getServerBaseUrl()}/api/agent-stop`;
+  // Fire-and-forget safe: ignore response
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  }).catch(console.error);
+}

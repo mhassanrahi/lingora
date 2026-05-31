@@ -1,5 +1,7 @@
 import { images } from "@/constants/images";
 import { getLessonById } from "@/data/lessons";
+import { startAgent, stopAgent } from "@/lib/streamApi";
+import { useLanguageStore } from "@/store/languageStore";
 import type { PhraseItem } from "@/types/learning";
 import { useUser } from "@clerk/expo";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -25,6 +27,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type SessionPhase = "intro" | "teaching" | "feedback";
+type AgentStatus = "idle" | "connecting" | "connected" | "failed";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -34,16 +37,44 @@ const FEEDBACK = [
   { label: "Grammar", value: "Good", color: "#6C4EF5" },
 ];
 
+const AGENT_USER_ID = "lingora-teacher";
+
+// ─── Agent status badge ───────────────────────────────────────────────────────
+
+function AgentStatusBadge({ status }: { status: AgentStatus }) {
+  const config: Record<AgentStatus, { color: string; label: string }> = {
+    idle: { color: "#6B7280", label: "Waiting" },
+    connecting: { color: "#F59E0B", label: "Summoning teacher..." },
+    connected: { color: "#21C168", label: "Teacher joined" },
+    failed: { color: "#FF4D4F", label: "Teacher unavailable" },
+  };
+  const { color, label } = config[status];
+  return (
+    <View style={[styles.agentBadge, { borderColor: color }]}>
+      {status === "connecting" ? (
+        <ActivityIndicator size={8} color={color} style={styles.agentSpinner} />
+      ) : (
+        <View style={[styles.agentDot, { backgroundColor: color }]} />
+      )}
+      <Text style={[styles.agentLabel, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
 // ─── Lesson body — lives inside <StreamCall> for hook access ─────────────────
 
 function LessonBody({
   lessonId,
   joinError,
+  agentStatus,
+  onAgentConnected,
   onBack,
   onEndCall,
 }: {
   lessonId: string;
   joinError: string | null;
+  agentStatus: AgentStatus;
+  onAgentConnected: () => void;
   onBack: () => void;
   onEndCall: () => Promise<void>;
 }) {
@@ -71,9 +102,20 @@ function LessonBody({
   const isEnded = callingState === CallingState.LEFT;
   const hasError = !!joinError;
 
-  // Auto-advance lesson phases once joined
+  // Detect when the AI teacher participant joins
   useEffect(() => {
-    if (!lesson || !isJoined) return;
+    if (agentStatus === "connected") return;
+    const agentParticipant = participants.find(
+      (p) => p.userId === AGENT_USER_ID
+    );
+    if (agentParticipant) {
+      onAgentConnected();
+    }
+  }, [participants, agentStatus, onAgentConnected]);
+
+  // Auto-advance lesson phases once joined and teacher is present
+  useEffect(() => {
+    if (!lesson || !isJoined || agentStatus !== "connected") return;
     if (phase === "intro") {
       const t = setTimeout(() => setPhase("teaching"), 3200);
       return () => clearTimeout(t);
@@ -88,7 +130,7 @@ function LessonBody({
       }, 4000);
       return () => clearTimeout(t);
     }
-  }, [phase, phraseIdx, lesson, phrases.length, isJoined]);
+  }, [phase, phraseIdx, lesson, phrases.length, isJoined, agentStatus]);
 
   if (!lesson) return null;
 
@@ -110,11 +152,15 @@ function LessonBody({
         ? callingState === CallingState.RECONNECTING
           ? "Reconnecting..."
           : "Connecting..."
-        : phase === "intro"
-          ? "Starting session..."
-          : phase === "teaching"
-            ? `Phrase ${phraseIdx + 1} of ${phrases.length}`
-            : "Great session!";
+        : agentStatus === "connecting"
+          ? "Summoning teacher..."
+          : agentStatus === "failed"
+            ? "Teacher unavailable"
+            : phase === "intro"
+              ? "Starting session..."
+              : phase === "teaching"
+                ? `Phrase ${phraseIdx + 1} of ${phrases.length}`
+                : "Great session!";
 
   const onlineLabel = hasError
     ? "Error"
@@ -122,7 +168,9 @@ function LessonBody({
       ? "Ended"
       : isConnecting
         ? "Connecting"
-        : "Live";
+        : agentStatus === "failed"
+          ? "Error"
+          : "Live";
 
   const bubbleText =
     isConnecting || hasError || isEnded
@@ -131,14 +179,18 @@ function LessonBody({
         : hasError
           ? (joinError ?? "Could not connect")
           : "Session has ended."
-      : phase === "intro"
-        ? (lesson.aiTeacherPrompt.intro ?? "")
-        : phase === "feedback"
-          ? (lesson.aiTeacherPrompt.encouragement ?? "")
-          : (phrases[phraseIdx]?.phrase ?? "");
+      : agentStatus === "connecting"
+        ? "Your AI teacher is joining the session..."
+        : agentStatus === "failed"
+          ? "Could not connect the AI teacher. You can still practise!"
+          : phase === "intro"
+            ? (lesson.aiTeacherPrompt.intro ?? "")
+            : phase === "feedback"
+              ? (lesson.aiTeacherPrompt.encouragement ?? "")
+              : (phrases[phraseIdx]?.phrase ?? "");
 
   const bubbleTranslation =
-    isJoined && phase === "teaching" && showSubtitles
+    isJoined && phase === "teaching" && showSubtitles && agentStatus === "connected"
       ? (phrases[phraseIdx]?.translation ?? "")
       : "";
 
@@ -151,10 +203,6 @@ function LessonBody({
     } catch (err) {
       console.error("Mic toggle failed", err);
     }
-  };
-
-  const handleEndCall = async () => {
-    await onEndCall();
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -184,7 +232,6 @@ function LessonBody({
               <Text style={styles.cameraBadgeText}>{lesson.xpReward}</Text>
             </View>
           </View>
-          {/* Participant count badge */}
           <View style={styles.avatar}>
             {isJoined ? (
               <Text style={styles.participantCount}>
@@ -201,7 +248,7 @@ function LessonBody({
       <View style={styles.body}>
         {/* Teacher area */}
         <View style={styles.teacherArea}>
-          {/* Connecting overlay */}
+          {/* Connecting overlay (call) */}
           {isConnecting && !hasError && (
             <View style={styles.connectingOverlay}>
               <ActivityIndicator size="large" color="#6C4EF5" />
@@ -247,6 +294,13 @@ function LessonBody({
             <View style={[styles.statusDot, { backgroundColor: dotColor }]} />
             <Text style={styles.statusText}>{sessionLabel}</Text>
           </View>
+
+          {/* Agent connection badge */}
+          {isJoined && (
+            <View style={styles.agentBadgeWrap}>
+              <AgentStatusBadge status={agentStatus} />
+            </View>
+          )}
 
           {/* Teacher speech bubble */}
           <View style={styles.bubble}>
@@ -304,10 +358,10 @@ function LessonBody({
             <Ionicons name="text-outline" size={22} color="white" />
           </TouchableOpacity>
 
-          {/* End Call — wired to Stream call.leave() */}
+          {/* End Call */}
           <TouchableOpacity
             style={styles.endCallBtn}
-            onPress={handleEndCall}
+            onPress={onEndCall}
             activeOpacity={0.8}
           >
             <View style={styles.endCallIcon}>
@@ -338,7 +392,7 @@ function LessonBody({
   );
 }
 
-// ─── Root screen — manages call lifecycle ────────────────────────────────────
+// ─── Root screen — manages call + agent lifecycle ────────────────────────────
 
 export default function LessonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -346,57 +400,120 @@ export default function LessonScreen() {
   const lesson = getLessonById(id ?? "");
   const { user } = useUser();
   const client = useStreamVideoClient();
+  const { selectedLanguage } = useLanguageStore();
 
   const [call, setCall] = useState<Call | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
-  // Track whether leave() has already been requested to guard against double-leave
+  const [agentStatus, setAgentStatus] = useState<AgentStatus>("idle");
+
+  // Stable refs for cleanup (avoid stale closures)
   const leavingRef = useRef(false);
+  const sessionIdRef = useRef<string | null>(null);
+  const callIdRef = useRef<string | null>(null);
+  const agentStopFiredRef = useRef(false);
+
+  // ── Shared cleanup helpers ───────────────────────────────────────────────
+
+  const fireStopAgent = () => {
+    if (
+      agentStopFiredRef.current ||
+      !sessionIdRef.current ||
+      !callIdRef.current
+    )
+      return;
+    agentStopFiredRef.current = true;
+    // Fire-and-forget — safe during unmount
+    stopAgent({
+      callId: callIdRef.current,
+      sessionId: sessionIdRef.current,
+    });
+  };
+
+  // ── Call + agent lifecycle ───────────────────────────────────────────────
 
   useEffect(() => {
     const userId = user?.id;
     if (!client || !userId || !lesson) return;
 
     leavingRef.current = false;
+    agentStopFiredRef.current = false;
+    sessionIdRef.current = null;
+    callIdRef.current = null;
     setJoinError(null);
+    setAgentStatus("idle");
 
     const safeUserId = userId.replace(/[^a-zA-Z0-9]/g, "").substring(0, 10);
     const callId = `lesson-${id}-${safeUserId}`;
+    callIdRef.current = callId;
 
-    const c = client.call("default", callId, { reuseInstance: true });
+    // audio_room gives us proper permission semantics for the agent
+    const c = client.call("audio_room", callId, { reuseInstance: true });
     setCall(c);
 
-    // Audio-only lesson — disable camera before joining
+    // Disable camera before joining — this is a voice-only lesson
     c.camera.disable().catch(console.error);
 
-    c.join({ create: true }).catch((err: unknown) => {
-      const msg =
-        err instanceof Error ? err.message : "Failed to join the session";
-      setJoinError(msg);
-    });
+    c.join({ create: true })
+      .then(() => {
+        // Call joined — now spawn the AI teacher
+        setAgentStatus("connecting");
+        return startAgent({
+          callId,
+          lessonId: id ?? "",
+          language: selectedLanguage ?? id?.split("-")[0] ?? "en",
+          userId,
+        });
+      })
+      .then(({ sessionId }) => {
+        sessionIdRef.current = sessionId;
+        // agentStatus moves to "connected" when the teacher participant appears
+      })
+      .catch((err: unknown) => {
+        const msg =
+          err instanceof Error ? err.message : "Failed to start the session";
+        // Distinguish join errors from agent errors
+        if (agentStatus === "idle") {
+          setJoinError(msg);
+        } else {
+          console.warn("[lesson] Agent start failed:", msg);
+          setAgentStatus("failed");
+        }
+      });
 
     return () => {
+      fireStopAgent();
       if (!leavingRef.current && c.state.callingState !== CallingState.LEFT) {
         leavingRef.current = true;
         c.leave().catch(console.error);
       }
       setCall(null);
     };
-    // lesson is derived from id; including it avoids stale-closure warning
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, user?.id, id, lesson]);
+
+  // ── Handlers ────────────────────────────────────────────────────────────
 
   const handleBack = () => router.back();
 
   const handleEndCall = async () => {
-    if (call && !leavingRef.current && call.state.callingState !== CallingState.LEFT) {
+    fireStopAgent();
+    if (
+      call &&
+      !leavingRef.current &&
+      call.state.callingState !== CallingState.LEFT
+    ) {
       leavingRef.current = true;
       await call.leave().catch(console.error);
     }
     router.back();
   };
 
+  const handleAgentConnected = () => setAgentStatus("connected");
+
+  // ── Render ──────────────────────────────────────────────────────────────
+
   if (!lesson) return null;
 
-  // StreamVideo client not yet ready (user not authenticated or initialising)
   if (!call) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -407,7 +524,9 @@ export default function LessonScreen() {
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>AI Teacher</Text>
             <View style={styles.onlineRow}>
-              <View style={[styles.onlineDot, { backgroundColor: "#F59E0B" }]} />
+              <View
+                style={[styles.onlineDot, { backgroundColor: "#F59E0B" }]}
+              />
               <Text style={[styles.onlineLabel, { color: "#F59E0B" }]}>
                 Connecting
               </Text>
@@ -433,6 +552,8 @@ export default function LessonScreen() {
         <LessonBody
           lessonId={id ?? ""}
           joinError={joinError}
+          agentStatus={agentStatus}
+          onAgentConnected={handleAgentConnected}
           onBack={handleBack}
           onEndCall={handleEndCall}
         />
@@ -617,6 +738,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
     color: "white",
+  },
+
+  // ── Agent status badge
+  agentBadgeWrap: {
+    position: "absolute",
+    top: 46,
+    left: 16,
+  },
+  agentBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(13,11,30,0.55)",
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  agentDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  agentSpinner: {
+    width: 8,
+    height: 8,
+  },
+  agentLabel: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 10,
+    lineHeight: 14,
   },
 
   // ── Bubble

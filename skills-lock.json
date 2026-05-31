@@ -7,6 +7,11 @@
       "skillPath": "plugins/expo/skills/expo-ui-jetpack-compose/SKILL.md",
       "computedHash": "71f70462e4c8d4f1f3b5642139aca8726025f6cf99563652b88c8992f5bf7275"
     },
+    "agent": {
+      "source": "visionagents.ai",
+      "sourceType": "well-known",
+      "computedHash": "1346b672be9a9b7075809c8f7adcfe4a671d738b9bda71159b5d309c35674b98"
+    },
     "building-native-ui": {
       "source": "expo/skills",
       "sourceType": "github",
