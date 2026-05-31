@@ -50,7 +50,7 @@ export default function SignInScreen() {
         return;
       }
 
-      if (signIn.status === "needs_client_trust") {
+      if (signIn.status === "needs_second_factor" || signIn.status === "needs_client_trust") {
         const emailCodeFactor = signIn.supportedSecondFactors?.find(
           (factor) => factor.strategy === "email_code",
         );

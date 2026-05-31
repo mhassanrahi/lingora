@@ -53,6 +53,7 @@ export interface Lesson {
   description: string;
   order: number;
   xpReward: number;
+  image?: string;
   goals: LessonGoal[];
   activities: Activity[];
   aiTeacherPrompt: AITeacherPrompt;
@@ -65,5 +66,6 @@ export interface Unit {
   description: string;
   order: number;
   color: string;
+  image?: string;
   lessonIds: string[];
 }

@@ -12,6 +12,7 @@ export default {
       supportsTablet: true,
     },
     android: {
+      "package": "com.anonymous.lingora",
       adaptiveIcon: {
         backgroundColor: "#E6F4FE",
         foregroundImage: "./assets/images/android-icon-foreground.png",
@@ -42,6 +43,20 @@ export default {
       "@clerk/expo",
       "expo-secure-store",
       "expo-web-browser",
+      "@stream-io/video-react-native-sdk",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          cameraPermission: "$(PRODUCT_NAME) needs camera access for video lessons",
+          microphonePermission: "$(PRODUCT_NAME) needs microphone access for audio lessons",
+        },
+      ],
+      [
+        "expo-build-properties",
+        {
+          android: { minSdkVersion: 24 },
+        },
+      ],
     ],
     experiments: {
       typedRoutes: true,
@@ -50,6 +65,9 @@ export default {
     extra: {
       posthogProjectToken: process.env.POSTHOG_PROJECT_TOKEN,
       posthogHost: process.env.POSTHOG_HOST,
+      "eas": {
+        "projectId": "cc2fa253-17e0-4358-aab7-74f46cccab5c"
+      }
     },
   },
 };

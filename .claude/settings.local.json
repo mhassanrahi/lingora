@@ -11,7 +11,14 @@
       "Bash(npm run *)",
       "PowerShell(ls -Path \"d:\\\\projects\\\\RN\\\\lingora\" -Force | Where-Object { $_.PSIsContainer -or $_.Name -eq \"package.json\" -or $_.Name -eq \"global.css\" } | Select-Object Name)",
       "Bash(Get-ChildItem -Path \"d:\\\\projects\\\\RN\\\\lingora\" -Force)",
-      "Bash(Select-Object Name, FullName)"
+      "Bash(Select-Object Name, FullName)",
+      "Bash(npx eslint *)",
+      "Skill(stream)",
+      "Skill(stream:*)",
+      "WebFetch(domain:visionagents.ai)",
+      "PowerShell(powershell -ExecutionPolicy Bypass -Command \"irm https://astral.sh/uv/install.ps1 | iex\" 2>&1)",
+      "PowerShell($env:PATH = \"$env:USERPROFILE\\\\.local\\\\bin;$env:PATH\"; cd d:\\\\projects\\\\RN\\\\lingora\\\\vision-agent; uv sync 2>&1)",
+      "WebFetch(domain:getstream.io)"
     ]
   }
 }

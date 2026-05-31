@@ -1,0 +1,9 @@
+[project]
+name = "lingora-vision-agent"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "vision-agents[getstream,gemini]",
+    "python-dotenv",
+]
+

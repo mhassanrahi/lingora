@@ -2,22 +2,26 @@ import { posthog } from "@/config/posthog";
 import { useSSO } from "@clerk/expo";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
-
-WebBrowser.maybeCompleteAuthSession();
-
 export function useGoogleAuth() {
   const { startSSOFlow } = useSSO();
 
   const signInWithGoogle = async () => {
     try {
-      const { createdSessionId, setActive } = await startSSOFlow({
+      const { createdSessionId, setActive, signIn, signUp } = await startSSOFlow({
         strategy: "oauth_google",
         redirectUrl: Linking.createURL("/"),
       });
 
-      if (createdSessionId && setActive) {
-        await setActive({ session: createdSessionId });
+      console.log("signIn: ", signIn?.status)
+
+      // Resolve the session ID from whichever resource Clerk populated
+      const sessionId =
+        createdSessionId ??
+        (signIn?.status === "complete" ? signIn.createdSessionId : null) ??
+        (signUp?.status === "complete" ? signUp.createdSessionId : null);
+
+      if (sessionId && setActive) {
+        await setActive({ session: sessionId });
         posthog.capture("user_signed_in_with_google", { method: "google" });
         router.replace("/");
       }

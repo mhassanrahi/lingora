@@ -1,13 +1,26 @@
 import "../global.css";
 
 import { posthog } from "@/config/posthog";
+import * as WebBrowser from "expo-web-browser";
+
+WebBrowser.maybeCompleteAuthSession();
+import { fetchStreamSession } from "@/lib/streamApi";
 import { ClerkProvider, useUser } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
+import {
+  StreamVideo,
+  StreamVideoClient,
+} from "@stream-io/video-react-native-sdk";
 import { useFonts } from "expo-font";
 import { Stack, useGlobalSearchParams, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { PostHogProvider } from "posthog-react-native";
 import { useEffect, useRef } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -33,9 +46,74 @@ function sanitizeAnalyticsParams(
   );
 }
 
+// Bridges device safe-area insets into StreamVideo's theme so CallContent
+// and participant views respect notches / system bars correctly.
+function VideoWithInsets({
+  client,
+  children,
+}: {
+  client: StreamVideoClient;
+  children: React.ReactNode;
+}) {
+  const { top, right, bottom, left } = useSafeAreaInsets();
+  // `as any` needed: SDK's DeepPartial<Theme> index signature rejects plain number values
+  const theme: any = { variants: { insets: { top, right, bottom, left } } };
+  return (
+    <StreamVideo client={client} style={theme}>
+      {children}
+    </StreamVideo>
+  );
+}
+
+// Initialises a StreamVideoClient for the signed-in Clerk user and wraps
+// descendants in <StreamVideo>. Disconnects on sign-out.
+function StreamVideoWrapper({
+  userId,
+  userName,
+  children,
+}: {
+  userId: string;
+  userName: string;
+  children: React.ReactNode;
+}) {
+  // Initialise the singleton client synchronously — the tokenProvider is
+  // called lazily by the SDK when it first needs to authenticate.
+  const clientRef = useRef<StreamVideoClient | null>(null);
+  if (!clientRef.current) {
+    const apiKey = process.env.EXPO_PUBLIC_STREAM_API_KEY!;
+    const tokenProvider = async () => {
+      const session = await fetchStreamSession({
+        userId,
+        userName,
+        lessonId: "init",
+        language: "init",
+      });
+      return session.token;
+    };
+    clientRef.current = StreamVideoClient.getOrCreateInstance({
+      apiKey,
+      user: { id: userId, name: userName },
+      tokenProvider,
+    });
+  }
+
+  useEffect(() => {
+    return () => {
+      clientRef.current?.disconnectUser().catch(console.error);
+      clientRef.current = null;
+    };
+  }, []);
+
+  return (
+    <VideoWithInsets client={clientRef.current}>
+      {children}
+    </VideoWithInsets>
+  );
+}
+
 // Inner component — must be a child of ClerkProvider to call useUser()
 function AppNavigation() {
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
 
   useEffect(() => {
     if (user?.id) {
@@ -47,7 +125,20 @@ function AppNavigation() {
     }
   }, [user?.id]);
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  const stack = <Stack screenOptions={{ headerShown: false }} />;
+
+  if (isSignedIn && user) {
+    return (
+      <StreamVideoWrapper
+        userId={user.id}
+        userName={user.fullName ?? user.firstName ?? user.id}
+      >
+        {stack}
+      </StreamVideoWrapper>
+    );
+  }
+
+  return stack;
 }
 
 export default function RootLayout() {
@@ -84,18 +175,22 @@ export default function RootLayout() {
   }
 
   return (
-    <PostHogProvider
-      client={posthog}
-      autocapture={{
-        captureScreens: false,
-        captureTouches: true,
-        propsToCapture: ["testID"],
-        maxElementsCaptured: 20,
-      }}
-    >
-      <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-        <AppNavigation />
-      </ClerkProvider>
-    </PostHogProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <PostHogProvider
+        client={posthog}
+        autocapture={{
+          captureScreens: false,
+          captureTouches: true,
+          propsToCapture: ["testID"],
+          maxElementsCaptured: 20,
+        }}
+      >
+        <SafeAreaProvider>
+          <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+            <AppNavigation />
+          </ClerkProvider>
+        </SafeAreaProvider>
+      </PostHogProvider>
+    </GestureHandlerRootView>
   );
 }
