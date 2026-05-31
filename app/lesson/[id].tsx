@@ -1,6 +1,6 @@
 import { images } from "@/constants/images";
 import { getLessonById } from "@/data/lessons";
-import { startAgent, stopAgent } from "@/lib/streamApi";
+import { interruptAgent, startAgent, stopAgent } from "@/lib/streamApi";
 import { useLanguageStore } from "@/store/languageStore";
 import type { PhraseItem } from "@/types/learning";
 import { useUser } from "@clerk/expo";
@@ -65,6 +65,8 @@ function AgentStatusBadge({ status }: { status: AgentStatus }) {
 
 function LessonBody({
   lessonId,
+  callId,
+  sessionId,
   joinError,
   agentStatus,
   onAgentConnected,
@@ -72,6 +74,8 @@ function LessonBody({
   onEndCall,
 }: {
   lessonId: string;
+  callId: string;
+  sessionId: string | null;
   joinError: string | null;
   agentStatus: AgentStatus;
   onAgentConnected: () => void;
@@ -80,20 +84,17 @@ function LessonBody({
 }) {
   const lesson = getLessonById(lessonId);
   const call = useCall();
-  const { useCallCallingState, useMicrophoneState, useParticipants } =
-    useCallStateHooks();
+  const { useCallCallingState, useParticipants } = useCallStateHooks();
   const callingState = useCallCallingState();
-  const { status: micStatus, isSpeakingWhileMuted } = useMicrophoneState();
   const participants = useParticipants();
 
   const [phase, setPhase] = useState<SessionPhase>("intro");
-  const [showSubtitles, setShowSubtitles] = useState(true);
   const [phraseIdx, setPhraseIdx] = useState(0);
+  const [isPtt, setIsPtt] = useState(false);
 
   const phrases: PhraseItem[] =
     lesson?.activities.find((a) => a.type === "phrase")?.phrases ?? [];
 
-  const isMuted = micStatus === "disabled";
   const isConnecting =
     callingState === CallingState.IDLE ||
     callingState === CallingState.JOINING ||
@@ -190,18 +191,33 @@ function LessonBody({
               : (phrases[phraseIdx]?.phrase ?? "");
 
   const bubbleTranslation =
-    isJoined && phase === "teaching" && showSubtitles && agentStatus === "connected"
+    isJoined && phase === "teaching" && agentStatus === "connected"
       ? (phrases[phraseIdx]?.translation ?? "")
       : "";
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  const handleToggleMute = async () => {
+  const handlePttStart = async () => {
     if (!call || !isJoined) return;
+    setIsPtt(true);
+    // Interrupt the agent immediately so it stops speaking before the student talks.
+    if (callId && sessionId) {
+      interruptAgent({ callId, sessionId }).catch(console.error);
+    }
     try {
-      await call.microphone.toggle();
+      await call.microphone.enable();
     } catch (err) {
-      console.error("Mic toggle failed", err);
+      console.error("Mic enable failed", err);
+    }
+  };
+
+  const handlePttEnd = async () => {
+    if (!call || !isJoined) return;
+    setIsPtt(false);
+    try {
+      await call.microphone.disable();
+    } catch (err) {
+      console.error("Mic disable failed", err);
     }
   };
 
@@ -225,30 +241,22 @@ function LessonBody({
           </View>
         </View>
 
-        <View style={styles.headerRight}>
-          <View style={styles.cameraWrap}>
-            <Ionicons name="videocam-outline" size={20} color="white" />
-            <View style={styles.cameraBadge}>
-              <Text style={styles.cameraBadgeText}>{lesson.xpReward}</Text>
-            </View>
+        <TouchableOpacity
+          style={styles.endCallHeaderBtn}
+          onPress={onEndCall}
+          activeOpacity={0.8}
+        >
+          <View style={styles.endCallHeaderIcon}>
+            <Ionicons name="call" size={18} color="white" />
           </View>
-          <View style={styles.avatar}>
-            {isJoined ? (
-              <Text style={styles.participantCount}>
-                {participants.length}
-              </Text>
-            ) : (
-              <Ionicons name="person" size={16} color="#6C4EF5" />
-            )}
-          </View>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* ── Body ─────────────────────────────────────────────────── */}
       <View style={styles.body}>
         {/* Teacher area */}
         <View style={styles.teacherArea}>
-          {/* Connecting overlay (call) */}
+          {/* Connecting overlay */}
           {isConnecting && !hasError && (
             <View style={styles.connectingOverlay}>
               <ActivityIndicator size="large" color="#6C4EF5" />
@@ -266,28 +274,6 @@ function LessonBody({
             style={styles.mascot}
             resizeMode="contain"
           />
-
-          {/* Student thumbnail */}
-          <View style={styles.studentThumb}>
-            {isJoined ? (
-              <View style={styles.studentThumbInner}>
-                <Ionicons
-                  name={isMuted ? "mic-off" : "mic"}
-                  size={18}
-                  color={isMuted ? "#FF4D4F" : "#21C168"}
-                />
-                {isSpeakingWhileMuted && (
-                  <Text style={styles.mutedHint}>Muted</Text>
-                )}
-              </View>
-            ) : (
-              <Ionicons
-                name="person"
-                size={28}
-                color="rgba(255,255,255,0.7)"
-              />
-            )}
-          </View>
 
           {/* Session status pill */}
           <View style={styles.statusPill}>
@@ -324,50 +310,32 @@ function LessonBody({
           </View>
         </View>
 
-        {/* ── Controls ─────────────────────────────────────────── */}
+        {/* ── Push-to-talk ─────────────────────────────────────── */}
         <View style={styles.controls}>
-          {/* Camera — audio-only lesson, always off */}
-          <TouchableOpacity style={styles.ctrlBtn} activeOpacity={0.8} disabled>
-            <Ionicons name="videocam-off-outline" size={22} color="white" />
-          </TouchableOpacity>
-
-          {/* Mic — wired to Stream microphone */}
           <TouchableOpacity
             style={[
-              styles.ctrlBtn,
-              isMuted && isJoined && styles.ctrlBtnActive,
-              !isJoined && styles.ctrlBtnDisabled,
+              styles.pttBtn,
+              isPtt && styles.pttBtnActive,
+              !isJoined && styles.pttBtnDisabled,
             ]}
-            onPress={handleToggleMute}
-            activeOpacity={0.8}
+            onPressIn={handlePttStart}
+            onPressOut={handlePttEnd}
+            activeOpacity={1}
             disabled={!isJoined}
           >
             <Ionicons
-              name={isMuted ? "mic-off" : "mic-outline"}
-              size={22}
+              name={isPtt ? "mic" : "mic-outline"}
+              size={32}
               color="white"
             />
           </TouchableOpacity>
-
-          {/* Subtitles */}
-          <TouchableOpacity
-            style={[styles.ctrlBtn, showSubtitles && styles.ctrlBtnActive]}
-            onPress={() => setShowSubtitles((v) => !v)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="text-outline" size={22} color="white" />
-          </TouchableOpacity>
-
-          {/* End Call */}
-          <TouchableOpacity
-            style={styles.endCallBtn}
-            onPress={onEndCall}
-            activeOpacity={0.8}
-          >
-            <View style={styles.endCallIcon}>
-              <Ionicons name="call" size={22} color="white" />
-            </View>
-          </TouchableOpacity>
+          <Text style={styles.pttLabel}>
+            {!isJoined
+              ? "Connecting..."
+              : isPtt
+                ? "Listening..."
+                : "Push & Hold to speak"}
+          </Text>
         </View>
 
         {/* ── Feedback ─────────────────────────────────────────── */}
@@ -405,8 +373,9 @@ export default function LessonScreen() {
   const [call, setCall] = useState<Call | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [agentStatus, setAgentStatus] = useState<AgentStatus>("idle");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [activeCallId, setActiveCallId] = useState<string>("");
 
-  // Stable refs for cleanup (avoid stale closures)
   const leavingRef = useRef(false);
   const sessionIdRef = useRef<string | null>(null);
   const callIdRef = useRef<string | null>(null);
@@ -422,7 +391,6 @@ export default function LessonScreen() {
     )
       return;
     agentStopFiredRef.current = true;
-    // Fire-and-forget — safe during unmount
     stopAgent({
       callId: callIdRef.current,
       sessionId: sessionIdRef.current,
@@ -441,21 +409,23 @@ export default function LessonScreen() {
     callIdRef.current = null;
     setJoinError(null);
     setAgentStatus("idle");
+    setSessionId(null);
 
     const safeUserId = userId.replace(/[^a-zA-Z0-9]/g, "").substring(0, 10);
     const callId = `lesson-${id}-${safeUserId}`;
     callIdRef.current = callId;
+    setActiveCallId(callId);
 
-    // audio_room gives us proper permission semantics for the agent
     const c = client.call("audio_room", callId, { reuseInstance: true });
     setCall(c);
 
-    // Disable camera before joining — this is a voice-only lesson
     c.camera.disable().catch(console.error);
 
     c.join({ create: true })
-      .then(() => {
-        // Call joined — now spawn the AI teacher
+      .then(async () => {
+        // Disable mic immediately so no ambient audio interferes with the
+        // agent's opening speech — the agent will auto-start via simple_response.
+        await c.microphone.disable().catch(console.error);
         setAgentStatus("connecting");
         return startAgent({
           callId,
@@ -464,14 +434,13 @@ export default function LessonScreen() {
           userId,
         });
       })
-      .then(({ sessionId }) => {
-        sessionIdRef.current = sessionId;
-        // agentStatus moves to "connected" when the teacher participant appears
+      .then(({ sessionId: sid }) => {
+        sessionIdRef.current = sid;
+        setSessionId(sid);
       })
       .catch((err: unknown) => {
         const msg =
           err instanceof Error ? err.message : "Failed to start the session";
-        // Distinguish join errors from agent errors
         if (agentStatus === "idle") {
           setJoinError(msg);
         } else {
@@ -551,6 +520,8 @@ export default function LessonScreen() {
       <StreamCall call={call}>
         <LessonBody
           lessonId={id ?? ""}
+          callId={activeCallId}
+          sessionId={sessionId}
           joinError={joinError}
           agentStatus={agentStatus}
           onAgentConnected={handleAgentConnected}
@@ -611,27 +582,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 14,
   },
-  cameraWrap: {
-    position: "relative",
-  },
-  cameraBadge: {
-    position: "absolute",
-    top: -6,
-    right: -9,
-    backgroundColor: "#6C4EF5",
-    borderRadius: 8,
-    minWidth: 18,
-    height: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 3,
-  },
-  cameraBadgeText: {
-    fontFamily: "Poppins-Bold",
-    fontSize: 9,
-    lineHeight: 13,
-    color: "white",
-  },
   avatar: {
     width: 34,
     height: 34,
@@ -640,10 +590,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  participantCount: {
-    fontFamily: "Poppins-Bold",
-    fontSize: 13,
-    color: "#6C4EF5",
+  endCallHeaderBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#FF4D4F",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  endCallHeaderIcon: {
+    transform: [{ rotate: "135deg" }],
   },
 
   // ── Body
@@ -691,29 +647,6 @@ const styles = StyleSheet.create({
     width: SCREEN_W * 0.72,
     height: SCREEN_W * 0.72,
     marginBottom: 90,
-  },
-  studentThumb: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    width: 80,
-    height: 100,
-    borderRadius: 14,
-    backgroundColor: "#1E1A30",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.12)",
-    overflow: "hidden",
-  },
-  studentThumbInner: {
-    alignItems: "center",
-    gap: 4,
-  },
-  mutedHint: {
-    fontFamily: "Poppins-Regular",
-    fontSize: 9,
-    color: "#FF4D4F",
   },
   statusPill: {
     position: "absolute",
@@ -809,40 +742,35 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // ── Controls
+  // ── Push-to-talk controls
   controls: {
-    flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
-    gap: 16,
-    paddingVertical: 18,
+    paddingTop: 20,
+    paddingBottom: 16,
     paddingHorizontal: 24,
     backgroundColor: "white",
   },
-  ctrlBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+  pttBtn: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: "#2A2040",
     alignItems: "center",
     justifyContent: "center",
   },
-  ctrlBtnActive: {
+  pttBtnActive: {
     backgroundColor: "#6C4EF5",
   },
-  ctrlBtnDisabled: {
+  pttBtnDisabled: {
     opacity: 0.4,
   },
-  endCallBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#FF4D4F",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  endCallIcon: {
-    transform: [{ rotate: "135deg" }],
+  pttLabel: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#6B7280",
+    marginTop: 8,
+    textAlign: "center",
   },
 
   // ── Feedback

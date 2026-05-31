@@ -1,6 +1,9 @@
 import "../global.css";
 
 import { posthog } from "@/config/posthog";
+import * as WebBrowser from "expo-web-browser";
+
+WebBrowser.maybeCompleteAuthSession();
 import { fetchStreamSession } from "@/lib/streamApi";
 import { ClerkProvider, useUser } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";

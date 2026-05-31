@@ -8,8 +8,13 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 # Load local .env — provides OPENAI_API_KEY (won't override parent keys)
 load_dotenv(Path(__file__).parent / ".env")
 
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from getstream import AsyncStream
 from vision_agents.core import Agent, AgentLauncher, User, Runner
+from vision_agents.core.runner import ServeOptions
+from vision_agents.core.runner.http.api import lifespan, router
+from vision_agents.core.runner.http.dependencies import get_launcher
 from vision_agents.plugins import getstream, gemini
 
 INSTRUCTIONS = """
@@ -126,5 +131,34 @@ async def join_call(agent: Agent, call_type: str, call_id: str, **kwargs) -> Non
         await agent.finish()
 
 
+# ─── Custom FastAPI app with interrupt endpoint ───────────────────────────────
+
+_launcher = AgentLauncher(create_agent=create_agent, join_call=join_call)
+
+app = FastAPI(lifespan=lifespan)
+app.state.launcher = _launcher
+app.include_router(router)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.post("/calls/{call_id}/sessions/{session_id}/interrupt")
+async def interrupt_session(
+    call_id: str,
+    session_id: str,
+    launcher: AgentLauncher = Depends(get_launcher),
+):
+    """Stop the agent's current speech so the student can speak immediately."""
+    session = launcher.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    await session.agent.simple_response("Listen.", interrupt=True)
+    return {"ok": True}
+
+
 if __name__ == "__main__":
-    Runner(AgentLauncher(create_agent=create_agent, join_call=join_call)).cli()
+    Runner(_launcher, serve_options=ServeOptions(fast_api=app)).cli()

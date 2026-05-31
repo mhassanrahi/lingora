@@ -71,3 +71,15 @@ export async function stopAgent(params: {
     body: JSON.stringify(params),
   }).catch(console.error);
 }
+
+export async function interruptAgent(params: {
+  callId: string;
+  sessionId: string;
+}): Promise<void> {
+  const url = `${getServerBaseUrl()}/api/agent-interrupt`;
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  }).catch(console.error);
+}
